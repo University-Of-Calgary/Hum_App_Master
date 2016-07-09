@@ -7,6 +7,9 @@
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <uses-permission android:name="android.permission.INTERNET"/>
 
     <application
         android:allowBackup="true"
@@ -58,6 +61,14 @@
         <activity
             android:name=".TermsAndConditions"
             android:label="@string/title_activity_terms_and_conditions" >
+        </activity>
+        <activity android:name=".Preferences" >
+        </activity>
+        <activity android:name=".RecorderSettings" >
+        </activity>
+        <activity android:name=".StartDSP2" >
+        </activity>
+        <activity android:name=".GetGPSLocation" >
         </activity>
     </application>
 

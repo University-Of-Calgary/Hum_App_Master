@@ -2,6 +2,7 @@ package com.example.orchisamadas.analyse_plot;
 
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import com.example.orchisamadas.analyse_plot.MySQLiteDatabaseContract.TableEntry;
@@ -10,6 +11,16 @@ public class MySQLiteDatabaseHelper extends SQLiteOpenHelper{
     public static final String NAME="DataAnalysis3.db";
     public static final int VERSION=1;
     public static Context mContext;
+
+    private static final String PREFERENCES = "AudioRecordingPrefs";
+    private static final String timeStartKey = "startKey";
+    private static final String timeEndKey = "endKey";
+    private static final String timeOftenKey = "oftenKey";
+    private static final String timeRecordingKey = "recordingKey";
+    private static final String thresholdNoiseKey = "thresholdKey";
+    private static final String gpsValueKey = "gpsKey";
+    private static final String originalStoreKey = "originalKey";
+
     public MySQLiteDatabaseHelper(Context context){
         super(context,NAME,null,VERSION);mContext=context;
     }
@@ -30,13 +41,17 @@ public class MySQLiteDatabaseHelper extends SQLiteOpenHelper{
 
         //this table stores FFT results
        create = "CREATE TABLE IF NOT EXISTS " + TableEntry.TABLE_NAME_FFT + " ("
-                + TableEntry._ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "
-                + TableEntry.COLUMN_NAME_DATE + " TEXT, "
+               + TableEntry._ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "
+               + TableEntry.COLUMN_NAME_FILENAME + " TEXT, "
+               + TableEntry.COLUMN_NAME_LATITUDE + " REAL, "
+               + TableEntry.COLUMN_NAME_LONGITUDE + " REAL, "
+               + TableEntry.COLUMN_NAME_DATE + " TEXT, "
                + TableEntry.COLUMN_NAME_COMMENT+ " TEXT, "
-                + TableEntry.COLUMN_NAME_XVALS + " BLOB, "
-                + TableEntry.COLUMN_NAME_YVALS + " BLOB";
+               + TableEntry.COLUMN_NAME_XVALS + " BLOB, "
+               + TableEntry.COLUMN_NAME_YVALS + " BLOB";
 
-        int numImpulses = mContext.getResources().getInteger(R.integer.num_impulses);
+        int numImpulses = StartDSP.numberImpulses;
+        System.out.println("The number of Impulses inside SQLite are : " + numImpulses);
         for(int k = 0; k < numImpulses; k++)
             create = create + ", " + TableEntry.COLUMN_NAME_IMPULSE + Integer.toString(k) + " BLOB";
 

@@ -9,4 +9,9 @@
         app:showAsAction="always"
         android:title="@string/audio_play"/>
 
+    <item
+        android:id="@+id/SettingsPreferences"
+        app:showAsAction="ifRoom"
+        android:title="Recording Preferences"/>
+
 </menu>

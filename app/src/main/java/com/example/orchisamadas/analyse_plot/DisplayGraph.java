@@ -13,6 +13,7 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.media.MediaPlayer;
 import android.os.Bundle;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.ActionBarActivity;
@@ -243,6 +244,11 @@ public class DisplayGraph extends ActionBarActivity {
             }
         }
 
+        if (id == R.id.audioPlayback){
+            // Playback the recording from the database
+
+        }
+
         return super.onOptionsItemSelected(item);
     }
 
@@ -271,6 +277,11 @@ public class DisplayGraph extends ActionBarActivity {
             return;
     }
 
+// Extracting the path of the file from the sqlite database
+    private void extractFilePath(String received_date){
+        MediaPlayer mediaPlayer = new MediaPlayer();
+
+    }
 
 //=================================================================================================================
     //plotting FFT graphs

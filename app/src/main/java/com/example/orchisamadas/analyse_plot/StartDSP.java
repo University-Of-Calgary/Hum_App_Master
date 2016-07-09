@@ -1,31 +1,13 @@
 package com.example.orchisamadas.analyse_plot;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.BufferedWriter;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.PrintWriter;
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
-import android.database.Cursor;
+import android.content.SharedPreferences;
 import android.database.sqlite.SQLiteDatabase;
+import android.location.Location;
+import android.location.LocationListener;
+import android.location.LocationManager;
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioRecord;
@@ -36,15 +18,14 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.os.Environment;
+import android.os.Handler;
 import android.support.v7.app.ActionBarActivity;
 import android.text.format.DateFormat;
 import android.util.Log;
-import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
@@ -52,11 +33,42 @@ import android.widget.ImageButton;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
+
 import com.example.orchisamadas.analyse_plot.MySQLiteDatabaseContract.TableEntry;
 
-
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.ByteBuffer;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 public class StartDSP extends ActionBarActivity {
+
+    public static final String PREFERENCES = "AudioRecordingPrefs";
+    public static final String timeStartKey = "startKey";
+    public static final String timeEndKey = "endKey";
+    public static final String timeOftenKey = "oftenKey";
+    public static final String timeRecordingKey = "recordingKey";
+    public static final String thresholdNoiseKey = "thresholdKey";
+    public static final String gpsValueKey = "gpsKey";
+    public static final String originalStoreKey = "originalKey";
+
+    LocationManager locationManager;
+    LocationListener locationListener;
     TextView TextHandleRemainingImpulses;
     AudioRecord recorder;
     CaptureAudio captureAudio;
@@ -64,20 +76,41 @@ public class StartDSP extends ActionBarActivity {
     String title;
     EditText comment;
     ImageButton done;
-    final CounterClass timer = new CounterClass(5000, 1000);
+    SharedPreferences preferences;
+    CounterClass timer;
     private static final double REFSPL = 0.00002;
     private MediaPlayer mPlayer = null;
     private MediaPlayer mediaPlayer;
+    int numberRecordings;
+    public static int numberImpulses;
+    Handler handler;
+    short[][] sampleBuffer;
+    double gpsLongitude = 0, gpsLatitude = 0;
+    String fileName;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         mediaPlayer = MediaPlayer.create(this, R.raw.boo);
+        preferences = getSharedPreferences(PREFERENCES, MODE_PRIVATE);
+        timer = new CounterClass(Integer.parseInt(preferences.getString(timeRecordingKey, "5")) * 1000, 1000);
+        Toast.makeText(StartDSP.this, "The time for recording is : " +
+                Integer.parseInt(preferences.getString(timeRecordingKey, "5")) + " seconds ", Toast.LENGTH_SHORT).show();
         setContentView(R.layout.activity_start_dsp);
+        locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
+        int startTime = Integer.parseInt(preferences.getString(timeStartKey, "0")) * 60;
+        int endTime = Integer.parseInt(preferences.getString(timeEndKey, "2")) * 60;
+        int duration = Integer.parseInt(preferences.getString(timeRecordingKey, "5"));
+        int oftenTime = Integer.parseInt(preferences.getString(timeOftenKey, "10"));
+        numberImpulses = (endTime - startTime) /(duration + oftenTime);
+        int totalTime = endTime - startTime;
+        if (totalTime - numberImpulses * (duration + oftenTime) > duration)
+            numberImpulses += 1;
         MySQLiteDatabaseHelper databaseHelper = new
                 MySQLiteDatabaseHelper(StartDSP.this);
         //open or create database
-        SQLiteDatabase db = openOrCreateDatabase(Environment.getExternalStorageDirectory() + File.separator + databaseHelper.NAME, MODE_PRIVATE, null);
+        SQLiteDatabase db = openOrCreateDatabase(Environment.getExternalStorageDirectory() +
+                File.separator + databaseHelper.NAME, MODE_PRIVATE, null);
         databaseHelper.onCreate(db);
     }
 
@@ -108,6 +141,10 @@ public class StartDSP extends ActionBarActivity {
         //Handle presses on the action bar items
         switch(item.getItemId()){
             case R.id.GenerateChirp:startPlaying();
+                return true;
+            case R.id.SettingsPreferences:
+                Intent preferencesIntent = new Intent(StartDSP.this, Preferences.class);
+                startActivity(preferencesIntent);
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
@@ -141,6 +178,30 @@ public class StartDSP extends ActionBarActivity {
         done = (ImageButton) findViewById(R.id.Enter);
         Toast.makeText(StartDSP.this, "Add a small description of the noise you're hearing", Toast.LENGTH_SHORT).show();
 
+        locationListener = new LocationListener() {
+            @Override
+            public void onLocationChanged(Location location) {
+                gpsLongitude = location.getLongitude();
+                gpsLatitude = location.getLatitude();
+            }
+
+            @Override
+            public void onStatusChanged(String provider, int status, Bundle extras) {
+
+            }
+
+            @Override
+            public void onProviderEnabled(String provider) {
+
+            }
+
+            @Override
+            public void onProviderDisabled(String provider) {
+
+            }
+        };
+        locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 5000, 0, locationListener);
+
         done.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -159,7 +220,7 @@ public class StartDSP extends ActionBarActivity {
             TextHandleRemainingImpulses = (TextView)
                     findViewById(R.id.remaining_impulses);
             TextHandleRemainingImpulses.setText(getResources().getString
-                    (R.string.remaining_impulse_leadtext) + Integer.toString(getResources().getInteger(R.integer.num_impulses)));
+                    (R.string.remaining_impulse_leadtext) + numberRecordings);
             textViewTime = (TextView)findViewById(R.id.textViewTime);
             captureAudio = new CaptureAudio(); captureAudio.execute();
             }
@@ -179,54 +240,74 @@ public class StartDSP extends ActionBarActivity {
     private class CaptureAudio extends AsyncTask<Void, Integer, Integer>{
 
         protected void onPreExecute(){
-            int bufferSize=2*AudioRecord.getMinBufferSize(getResources().getInteger(R.integer.sample_rate),
+            // Calculate the number of Recordings required, all the times are in seconds
+            int startTime = Integer.parseInt(preferences.getString(timeStartKey, "0")) * 60;
+            int endTime = Integer.parseInt(preferences.getString(timeEndKey, "2")) * 60;
+            int howOften = Integer.parseInt(preferences.getString(timeOftenKey, "30"));
+            int duration = Integer.parseInt(preferences.getString(timeRecordingKey, "5"));
+
+            numberRecordings = (endTime - startTime) / (howOften + duration);
+            int timeToRecord = endTime - startTime, totalDuration = howOften + duration;
+            if (timeToRecord - numberRecordings * totalDuration > duration) numberRecordings += 1;
+            System.out.println("Recordings required : " + numberRecordings);
+
+            int bufferSize=numberRecordings*AudioRecord.getMinBufferSize(getResources().getInteger(R.integer.sample_rate),
                     getResources().getInteger(R.integer.num_channels),AudioFormat.ENCODING_PCM_16BIT);
             recorder= new AudioRecord(AudioSource.MIC,getResources().getInteger(R.integer.sample_rate),
                     getResources().getInteger(R.integer.num_channels),AudioFormat.ENCODING_PCM_16BIT,bufferSize);
             if(recorder.getState()!=AudioRecord.STATE_INITIALIZED){
-                Toast.makeText(StartDSP.this, getResources().getString(R.string.recorder_init_fail),Toast.LENGTH_LONG).show();
+                    Toast.makeText(StartDSP.this, getResources().getString(R.string.recorder_init_fail),Toast.LENGTH_LONG).show();
                 recorder.release();
                 recorder=null;
                 return;}
         }
 
-
         protected Integer doInBackground(Void ... params) {
             if (recorder == null) {
                 return -1;
             }
-            int remainingImpulses =
-                    getResources().getInteger(R.integer.num_impulses);
+            //int remainingImpulses =
+            //        getResources().getInteger(R.integer.num_impulses);
+            int remainingImpulses = numberRecordings;
             int detectBufferLength = getResources().getInteger(R.integer.detect_buffer_length); //length = sampleRate * recordTime
-            int sampleBufferLength = getResources().getInteger(R.integer.sample_rate) * getResources().getInteger(R.integer.capture_time);
-            sampleBufferLength =
-                    nearestPow2Length(sampleBufferLength);
+            final int sampleBufferLength = nearestPow2Length(getResources().getInteger(R.integer.sample_rate) *
+                    Integer.parseInt(preferences.getString(timeRecordingKey, "5")));
             short[] detectBuffer = new short[detectBufferLength];
-            short[][] sampleBuffer = new short[remainingImpulses][sampleBufferLength];
+            sampleBuffer = new short[remainingImpulses][sampleBufferLength];
             recorder.startRecording();
 
-            while (remainingImpulses > 0) {
-                //...Listing 8A Article 3 Lines 516 to 525
-                publishProgress(-1, -1, -1, -1);
+            if (numberRecordings > 0) {
+                remainingImpulses --;
+                publishProgress(0, remainingImpulses, -1 , -1);
                 int samplesRead = 0;
+                while (samplesRead < sampleBufferLength)
+                    samplesRead += recorder.read(sampleBuffer[remainingImpulses], samplesRead,
+                            sampleBufferLength - samplesRead);
+            }
 
-                while (samplesRead < detectBufferLength)
-                    samplesRead += recorder.read(detectBuffer, samplesRead, detectBufferLength - samplesRead);
-
-                if (detectImpulse(detectBuffer)) {
-                    remainingImpulses--;
-                    publishProgress(0, remainingImpulses, -1, -1);
-                    System.arraycopy(detectBuffer, 0, sampleBuffer[remainingImpulses], 0, detectBufferLength);
-                    samplesRead = detectBufferLength;
-                    while (samplesRead < sampleBufferLength)
-                        samplesRead += recorder.read(sampleBuffer[remainingImpulses], samplesRead, sampleBufferLength - samplesRead);
+            while (remainingImpulses > 0) {
+                publishProgress(-1, -1, -1, -1);
+                remainingImpulses--;
+                final int bufferLength = sampleBufferLength;
+                final int impulsesRemaining = remainingImpulses;
+                try {
+                    Thread.sleep(Integer.parseInt(preferences.getString(timeOftenKey, "10")) * 1000);
+                } catch (InterruptedException e) {
+                    System.out.println("Exception starting thread : " + e.toString());
                 }
+
+                publishProgress(0, impulsesRemaining, -1, -1);
+                int samplesRead = 0;
+                while(samplesRead < sampleBufferLength)
+                    samplesRead += recorder.read(sampleBuffer[impulsesRemaining],
+                            samplesRead, sampleBufferLength - samplesRead);
+
                 if (isCancelled()) {
-                    detectBuffer = null;
-                    sampleBuffer = null;
-                    return -1;
+                    detectBuffer = null; sampleBuffer = null;
+                    return -1; // error returned to the onPostExecute() method
                 }
-            }//end while(remainingImpulses > 0)
+            }
+
             detectBuffer = null;
             if (recorder != null) {
                 recorder.release();
@@ -240,8 +321,9 @@ public class StartDSP extends ActionBarActivity {
 
 
             //analysing data
-            final int numImpulses =
-                    getResources().getInteger(R.integer.num_impulses);
+            // final int numImpulses =
+            //        getResources().getInteger(R.integer.num_impulses);
+            final int numImpulses = numberRecordings;
             double[][] samples = new double[numImpulses][sampleBufferLength];
             //normalizing time domain data
             for (int k = 0; k < numImpulses; k++) {
@@ -279,7 +361,7 @@ public class StartDSP extends ActionBarActivity {
             for(int k = 0; k < numImpulses; k++)
             {
                 for(int n = 0; n < sampleBufferLength; n++)
-                    toStorage[n] += samples[k][n]/REFSPL;
+                        toStorage[n] += samples[k][n]/REFSPL;
             }
             for(int n = 0; n < sampleBufferLength; n++)
             {
@@ -306,6 +388,7 @@ public class StartDSP extends ActionBarActivity {
                 if(maxYval < tempBuffer[k])
                     maxYval = tempBuffer[k];
             }
+
             ContentValues vals = new ContentValues();
             ContentValues values = new ContentValues();
             MySQLiteDatabaseHelper databaseHelper = new
@@ -366,13 +449,25 @@ public class StartDSP extends ActionBarActivity {
             String date = DateFormat.format("LLL dd, yyyy HH:mm", new Date()).toString();
             vals.put(TableEntry.COLUMN_NAME_DATE, date);
             vals.put(TableEntry.COLUMN_NAME_COMMENT, " - " + title);
-            db.insert(TableEntry.TABLE_NAME_FFT, null, vals);
 
+            // check if the gps location in enabled
+            if (preferences.getString(gpsValueKey, "no").equals("yes")){
+                // get the gps location
+                vals.put(TableEntry.COLUMN_NAME_LATITUDE, gpsLatitude);
+                vals.put(TableEntry.COLUMN_NAME_LONGITUDE, gpsLongitude);
+            }
+            else {
+                vals.put(TableEntry.COLUMN_NAME_LATITUDE, 0);
+                vals.put(TableEntry.COLUMN_NAME_LONGITUDE, 0);
+            }
+            vals.put(TableEntry.COLUMN_NAME_FILENAME, fileName);
+
+            db.insert(TableEntry.TABLE_NAME_FFT, null, vals);
 
             //==========================================================================================
 
-            //Do DSP here
-            for (int i = 0; i < numImpulses; i++) {
+            //Do DSP here, this can be changed into a function that performs digital signal processing
+            for (int i = 0; i < numImpulses; i++)   {
                 //Generating average over 1 Hz
                 double averageOver = 1 / (double) getResources().getInteger(R.integer.averageOverDenominator);
                 //sampleBufferLength = numPts in Matlab =32768
@@ -598,8 +693,8 @@ public class StartDSP extends ActionBarActivity {
                 showProgress.setVisibility(View.VISIBLE);
             }
             if(data[3] != -1)
-                Toast.makeText(StartDSP.this, getResources().getString(R.string.computation_error), Toast.LENGTH_LONG).show();}
-
+                Toast.makeText(StartDSP.this, getResources().getString(R.string.computation_error), Toast.LENGTH_LONG).show();
+        }
 
         protected void onPostExecute(Integer data){
             if(recorder != null){ recorder.release(); recorder = null;}
@@ -608,52 +703,52 @@ public class StartDSP extends ActionBarActivity {
             }
             else {
 
-                        //allowing user to playback on pressing a button
-                        ImageButton playback = (ImageButton) findViewById(R.id.playback);
-                        playback.setVisibility(View.VISIBLE);
-                        playback.setOnClickListener(new View.OnClickListener() {
-                            @Override
-                            public void onClick(View v) {
-                                playbackAudio();
-                            }
-                            });
+                //allowing user to playback on pressing a button
+                ImageButton playback = (ImageButton) findViewById(R.id.playback);
+                playback.setVisibility(View.VISIBLE);
+                playback.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        playbackAudio();
+                    }
+                    });
 
 
-                        TextView showProgress = (TextView) findViewById(R.id.analysing);
-                        showProgress.setText("Analysis Complete");
+                TextView showProgress = (TextView) findViewById(R.id.analysing);
+                showProgress.setText("Analysis Complete");
 
-                        //Start the DisplayGraph activity on click of a button
-                        //Button 1 displays FFT graph
-                        Button FFTbutton = (Button) findViewById(R.id.btnDisplayGraph);
-                        FFTbutton.setVisibility(View.VISIBLE);
-                        FFTbutton.setOnClickListener(new View.OnClickListener() {
-                            public void onClick(View arg0) {
-                                String which_button_pressed = "1";
-                                Bundle bundle = new Bundle();
-                                bundle.putString("button_pressed", which_button_pressed);
-                                Intent intent = new Intent(StartDSP.this, DisplayGraph.class);
-                                intent.putExtras(bundle);
-                                startActivity(intent);
-                            }
-                        });
+                //Start the DisplayGraph activity on click of a button
+                //Button 1 displays FFT graph
+                Button FFTbutton = (Button) findViewById(R.id.btnDisplayGraph);
+                FFTbutton.setVisibility(View.VISIBLE);
+                FFTbutton.setOnClickListener(new View.OnClickListener() {
+                    public void onClick(View arg0) {
+                        String which_button_pressed = "1";
+                        Bundle bundle = new Bundle();
+                        bundle.putString("button_pressed", which_button_pressed);
+                        Intent intent = new Intent(StartDSP.this, DisplayGraph.class);
+                        intent.putExtras(bundle);
+                        startActivity(intent);
+                    }
+                });
 
-                        //Button 2 displays Analysis Histogram
-                        Button Histbutton = (Button) findViewById(R.id.btnDisplayHistogram);
-                        Histbutton.setVisibility(View.VISIBLE);
-                        Histbutton.setOnClickListener(new View.OnClickListener() {
-                            public void onClick(View arg0) {
-                                String which_button_pressed = "2";
-                                Bundle bundle = new Bundle();
-                                bundle.putString("button_pressed", which_button_pressed);
-                                Intent intent = new Intent(StartDSP.this, DisplayGraph.class);
-                                intent.putExtras(bundle);
-                                startActivity(intent);
-                            }
-                        });
+                //Button 2 displays Analysis Histogram
+                Button Histbutton = (Button) findViewById(R.id.btnDisplayHistogram);
+                Histbutton.setVisibility(View.VISIBLE);
+                Histbutton.setOnClickListener(new View.OnClickListener() {
+                    public void onClick(View arg0) {
+                        String which_button_pressed = "2";
+                        Bundle bundle = new Bundle();
+                        bundle.putString("button_pressed", which_button_pressed);
+                        Intent intent = new Intent(StartDSP.this, DisplayGraph.class);
+                        intent.putExtras(bundle);
+                        startActivity(intent);
+                    }
+                });
 
-                        return;
-                        }
+                return;
                 }
+            }
 
 
         protected void onCancelled(){
@@ -669,9 +764,12 @@ public class StartDSP extends ActionBarActivity {
         protected int doubleFFT(double[][] samples, int numImpulses, int sampleSize){
             double[] real = new double[sampleSize]; double[] imag = new double[sampleSize];
             for(int k = 0; k < numImpulses; k++){
+
+
                 System.arraycopy(samples[k], 0, real, 0, sampleSize);
                 for(int n = 0; n < sampleSize; n++)
-                    imag[n] = 0; int error = FFTbase.fft(real, imag, true);
+                    imag[n] = 0;
+                int error = FFTbase.fft(real, imag, true);
                 if(error == -1) {return -1;}
                 for(int n = 0; n < sampleSize; n++)
                     samples[k][n] = Math.sqrt(real[n]*real[n] + imag[n]*imag[n]);
@@ -682,7 +780,7 @@ public class StartDSP extends ActionBarActivity {
 
     protected void applyBasicWindow(double[][] samples, int numImpulses, int sampleLength)
     {
-			/*The main goal is too ensure that the edges are smooth.
+			/*The main goal is to ensure that the edges are smooth.
 			 * Windowing is used because the DFT calculations operate on the infinite periodic
 			 * extension of the input signal. Since many actual signals are either not periodic at all,
 			 * or are sampled over an interval different from their actual period, this can produce
@@ -713,8 +811,6 @@ public class StartDSP extends ActionBarActivity {
         return;
     }
 
-
-
     public static int nearestPow2Length(int length){
         int temp = (int) (Math.log(length) / Math.log(2.0) + 0.5);length = 1;
         for(int n = 1; n <= temp; n++) {length = length * 2;}
@@ -723,9 +819,11 @@ public class StartDSP extends ActionBarActivity {
 
     //save recorded data in an external file to enable user to playback
     public void saveRecord(short sampleBuffer[][], int sampleBufferLength){
-        final int numImpulses =
-                getResources().getInteger(R.integer.num_impulses);
-        File file = new File(Environment.getExternalStorageDirectory(), "recordedSound.wav");
+        /**final int numImpulses =
+                getResources().getInteger(R.integer.num_impulses);*/
+        final int numImpulses = numberRecordings;
+        fileName = new SimpleDateFormat("yyyyMMddhhmmss'.wav'").format(new Date());
+        File file = new File(Environment.getExternalStorageDirectory(), fileName);
         if (file.exists())
             file.delete();
         try {
@@ -749,7 +847,7 @@ public class StartDSP extends ActionBarActivity {
 
     //playback record
     public void playbackAudio(){
-        File file = new File(Environment.getExternalStorageDirectory(), "recordedSound.wav");
+        File file = new File(Environment.getExternalStorageDirectory(), fileName);
         // Get the length of the audio stored in the file (16 bit so 2 bytes per short)
         // and create a short array to store the recorded audio.
         int audioLength = (int)(file.length()/2);

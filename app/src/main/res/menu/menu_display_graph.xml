@@ -39,6 +39,12 @@
         android:title="Zoom Out"
         app:showAsAction="ifRoom" />
 
+    <item
+        android:id="@+id/audioPlayback"
+        android:orderInCategory="49"
+        android:icon="@drawable/play_arrow_white"
+        android:title="Play Sound"
+        app:showAsAction="ifRoom"/>
 
     <item
         android:id="@+id/record_data"
