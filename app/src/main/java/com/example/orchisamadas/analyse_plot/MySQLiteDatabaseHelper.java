@@ -5,6 +5,9 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.util.Log;
+import android.widget.Toast;
+
 import com.example.orchisamadas.analyse_plot.MySQLiteDatabaseContract.TableEntry;
 
 public class MySQLiteDatabaseHelper extends SQLiteOpenHelper{
@@ -31,31 +34,35 @@ public class MySQLiteDatabaseHelper extends SQLiteOpenHelper{
         // analysis_data -> stores analysis results (dsp results)
 
         String create = "CREATE TABLE IF NOT EXISTS " + TableEntry.TABLE_NAME + " (" + TableEntry._ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "
-                + TableEntry.COLUMN_NAME + " TEXT, "
+                + TableEntry.COLUMN_NAME+ " TEXT, "
                 + TableEntry.COLUMN_COMMENT + " TEXT, "
                 + TableEntry.COLUMN_DATE + " TEXT, "
                 + TableEntry.COLUMN_MAX_SIGNAL + " REAL, "
                 + TableEntry.COLUMN_PERCENTAGE_WORSE_CASE + " REAL, "
-                + TableEntry.COLUMN_RATIO_BACKGROUND_NOISE + " REAL";
-        create = create +")";
+                + TableEntry.COLUMN_RATIO_BACKGROUND_NOSE + " REAL";
+        create = create + ")";
         db.execSQL(create);
 
         // fft_data -> stores the FFT (Fast Fourier Transform) results
 
         int numImpulses = StartDSP.numberImpulses;
         System.out.println("The number of impulses in the MySQLiteDatabaseHelper are : " + numImpulses);
+        Log.e("NUMBER_IMPULSES", "The number of impulses are : " + numImpulses);
 
-        create = "CREATE TABLE IF NOT EXISTS " + TableEntry.TABLE_NAME_FFT + " (" + TableEntry._ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "
-                + TableEntry.COLUMN_DATE + " TEXT, "
+        db.execSQL("DROP TABLE IF EXISTS " + TableEntry.TABLE_NAME_FFT);
+
+        create = "CREATE TABLE IF NOT EXISTS " + TableEntry.TABLE_NAME_FFT + " ("
+                + TableEntry._ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "
+                + TableEntry.COLUMN_NAME_DATE + " TEXT, "
+                + TableEntry.COLUMN_NAME_COMMENT+ " TEXT, "
                 + TableEntry.COLUMN_NAME_FILENAME + " TEXT, "
                 + TableEntry.COLUMN_NAME_LATITUDE + " REAL, "
                 + TableEntry.COLUMN_NAME_LONGITUDE + " REAL, "
-                + TableEntry.COLUMN_NAME_COMMENT + " TEXT, "
                 + TableEntry.COLUMN_NAME_XVALS + " BLOB, "
                 + TableEntry.COLUMN_NAME_YVALS + " BLOB";
 
-                for (int k=0; k<numImpulses; k++)
-                    create = create + ", " + TableEntry.COLUMN_NAME_IMPULSE + Integer.toString(k) + " INTEGER";
+        for(int k = 0; k < numImpulses; k++)
+            create = create + ", " + TableEntry.COLUMN_NAME_IMPULSE + Integer.toString(k) + " BLOB";
 
         create = create + ")";
         db.execSQL(create);

@@ -7,26 +7,26 @@ public final class MySQLiteDatabaseContract{
     public static abstract class TableEntry implements BaseColumns{
         //this table stores the analysis results
 
+        //this table stores the analysis results
         public static final String TABLE_NAME = "analysis_data";
         public static final String COLUMN_NAME = "nameID";
-        public static final String COLUMN_DATE = "dateTime"; // needs to be changed to start time/date and end time/date
+        public static final String COLUMN_DATE =  "dateTime";
         public static final String COLUMN_MAX_SIGNAL = "maximum_signal_frequency";
-        public static final String COLUMN_PERCENTAGE_WORSE_CASE = "percentage_worse_case";
-        public static final String COLUMN_RATIO_BACKGROUND_NOISE = "ratio_background_noise";
+        public static final String COLUMN_PERCENTAGE_WORSE_CASE = "percentage_worse_Case";
+        public static final String COLUMN_RATIO_BACKGROUND_NOSE = "ratio_background_noise";
         public static final String COLUMN_COMMENT = "comments";
 
-        //this table stores the FFT results
 
+        //this table stores the FFT results
         public static final String TABLE_NAME_FFT = "fft_data";
-        public static final String COLUMN_NAME_DATE = "date"; // needs to be changed to start time/date and end time/date
+        public static final String COLUMN_NAME_DATE = "date";
         public static final String COLUMN_NAME_XVALS = "xvals";
         public static final String COLUMN_NAME_YVALS = "yvals";
         public static final String COLUMN_NAME_IMPULSE = "impulseno";
         public static final String COLUMN_NAME_COMMENT = "comments_fft";
+        public static final String COLUMN_NAME_FILENAME = "filename";
         public static final String COLUMN_NAME_LATITUDE = "latitude";
         public static final String COLUMN_NAME_LONGITUDE = "longitude";
-        public static final String COLUMN_NAME_FILENAME = "filename";
-
         //be sure to append the impulse number to the COLUMN_NAME_IMPULSE string
         //for example: TableEntry.COLUMN_NAME_IMPULSE + Integer.toString(k)
 
