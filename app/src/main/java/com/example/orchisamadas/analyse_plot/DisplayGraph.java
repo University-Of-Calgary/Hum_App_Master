@@ -592,7 +592,7 @@ public class DisplayGraph extends ActionBarActivity {
         SQLiteDatabase db = databaseHelper.getReadableDatabase();
 
         String[] projection = new String[]{TableEntry.COLUMN_NAME, TableEntry.COLUMN_DATE, TableEntry.COLUMN_COMMENT, TableEntry.COLUMN_PERCENTAGE_WORSE_CASE,
-                TableEntry.COLUMN_RATIO_BACKGROUND_NOSE};
+                TableEntry.COLUMN_RATIO_BACKGROUND_NOISE};
         Cursor cursor = null;
         String where, date, title;
         //if no history is picked, load current/previous result
@@ -630,8 +630,8 @@ public class DisplayGraph extends ActionBarActivity {
         while (!cursor.isAfterLast()) {
             if (cursor.getDouble(cursor.getColumnIndex(TableEntry.COLUMN_PERCENTAGE_WORSE_CASE)) != 0)
                 percentage_worse_case.add(cursor.getDouble(cursor.getColumnIndex(TableEntry.COLUMN_PERCENTAGE_WORSE_CASE)));
-            if (cursor.getDouble(cursor.getColumnIndex(TableEntry.COLUMN_RATIO_BACKGROUND_NOSE)) != 0)
-                ratio_background_noise.add(cursor.getDouble(cursor.getColumnIndex(TableEntry.COLUMN_RATIO_BACKGROUND_NOSE)));
+            if (cursor.getDouble(cursor.getColumnIndex(TableEntry.COLUMN_RATIO_BACKGROUND_NOISE)) != 0)
+                ratio_background_noise.add(cursor.getDouble(cursor.getColumnIndex(TableEntry.COLUMN_RATIO_BACKGROUND_NOISE)));
             cursor.moveToNext();
         }
 
@@ -725,7 +725,7 @@ public class DisplayGraph extends ActionBarActivity {
         SQLiteDatabase db = databaseHelper.getReadableDatabase();
 
         String[] projection = new String[]{TableEntry.COLUMN_NAME, TableEntry.COLUMN_DATE, TableEntry.COLUMN_COMMENT, TableEntry.COLUMN_PERCENTAGE_WORSE_CASE,
-                TableEntry.COLUMN_RATIO_BACKGROUND_NOSE};
+                TableEntry.COLUMN_RATIO_BACKGROUND_NOISE};
         Cursor cursor = null;
         Cursor cursorDescription =null;
         String where = null;
@@ -749,8 +749,8 @@ public class DisplayGraph extends ActionBarActivity {
         while (!cursor.isAfterLast()) {
             if (cursor.getDouble(cursor.getColumnIndex(TableEntry.COLUMN_PERCENTAGE_WORSE_CASE)) != 0)
                 percentage_worse_case_current.add(cursor.getDouble(cursor.getColumnIndex(TableEntry.COLUMN_PERCENTAGE_WORSE_CASE)));
-            if (cursor.getDouble(cursor.getColumnIndex(TableEntry.COLUMN_RATIO_BACKGROUND_NOSE)) != 0)
-                ratio_background_noise_current.add(cursor.getDouble(cursor.getColumnIndex(TableEntry.COLUMN_RATIO_BACKGROUND_NOSE)));
+            if (cursor.getDouble(cursor.getColumnIndex(TableEntry.COLUMN_RATIO_BACKGROUND_NOISE)) != 0)
+                ratio_background_noise_current.add(cursor.getDouble(cursor.getColumnIndex(TableEntry.COLUMN_RATIO_BACKGROUND_NOISE)));
             cursor.moveToNext();
         }
 
@@ -764,8 +764,8 @@ public class DisplayGraph extends ActionBarActivity {
         while (!cursor.isAfterLast()) {
             if (cursor.getDouble(cursor.getColumnIndex(TableEntry.COLUMN_PERCENTAGE_WORSE_CASE)) != 0)
                 percentage_worse_case_selected.add(cursor.getDouble(cursor.getColumnIndex(TableEntry.COLUMN_PERCENTAGE_WORSE_CASE)));
-            if (cursor.getDouble(cursor.getColumnIndex(TableEntry.COLUMN_RATIO_BACKGROUND_NOSE)) != 0)
-                ratio_background_noise_selected.add(cursor.getDouble(cursor.getColumnIndex(TableEntry.COLUMN_RATIO_BACKGROUND_NOSE)));
+            if (cursor.getDouble(cursor.getColumnIndex(TableEntry.COLUMN_RATIO_BACKGROUND_NOISE)) != 0)
+                ratio_background_noise_selected.add(cursor.getDouble(cursor.getColumnIndex(TableEntry.COLUMN_RATIO_BACKGROUND_NOISE)));
             cursor.moveToNext();
         }
 

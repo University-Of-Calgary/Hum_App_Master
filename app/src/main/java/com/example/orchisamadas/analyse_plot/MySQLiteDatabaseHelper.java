@@ -12,14 +12,14 @@ public class MySQLiteDatabaseHelper extends SQLiteOpenHelper{
     public static final int VERSION=1;
     public static Context mContext;
 
-    private static final String PREFERENCES = "AudioRecordingPrefs";
-    private static final String timeStartKey = "startKey";
-    private static final String timeEndKey = "endKey";
-    private static final String timeOftenKey = "oftenKey";
-    private static final String timeRecordingKey = "recordingKey";
-    private static final String thresholdNoiseKey = "thresholdKey";
-    private static final String gpsValueKey = "gpsKey";
-    private static final String originalStoreKey = "originalKey";
+    public static final String PREFERENCES = "AudioRecordingPrefs";
+    public static final String timeStartKey = "startKey";
+    public static final String timeEndKey = "endKey";
+    public static final String timeOftenKey = "oftenKey";
+    public static final String timeRecordingKey = "recordingKey";
+    public static final String thresholdNoiseKey = "thresholdKey";
+    public static final String gpsValueKey = "gpsKey";
+    public static final String originalStoreKey = "originalKey";
 
     public MySQLiteDatabaseHelper(Context context){
         super(context,NAME,null,VERSION);mContext=context;
@@ -27,41 +27,38 @@ public class MySQLiteDatabaseHelper extends SQLiteOpenHelper{
 
     @Override
     public void onCreate(SQLiteDatabase db) {
-        //this table stores analysis results
+
+        // analysis_data -> stores analysis results (dsp results)
+
         String create = "CREATE TABLE IF NOT EXISTS " + TableEntry.TABLE_NAME + " (" + TableEntry._ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "
-                + TableEntry.COLUMN_NAME+ " TEXT, "
+                + TableEntry.COLUMN_NAME + " TEXT, "
                 + TableEntry.COLUMN_COMMENT + " TEXT, "
                 + TableEntry.COLUMN_DATE + " TEXT, "
                 + TableEntry.COLUMN_MAX_SIGNAL + " REAL, "
                 + TableEntry.COLUMN_PERCENTAGE_WORSE_CASE + " REAL, "
-                + TableEntry.COLUMN_RATIO_BACKGROUND_NOSE + " REAL";
-        create = create + ")";
+                + TableEntry.COLUMN_RATIO_BACKGROUND_NOISE + " REAL";
+        create = create +")";
         db.execSQL(create);
 
-
-        //this table stores FFT results
-       create = "CREATE TABLE IF NOT EXISTS " + TableEntry.TABLE_NAME_FFT + " ("
-               + TableEntry._ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "
-               + TableEntry.COLUMN_NAME_FILENAME + " TEXT, "
-               + TableEntry.COLUMN_NAME_LATITUDE + " REAL, "
-               + TableEntry.COLUMN_NAME_LONGITUDE + " REAL, "
-               + TableEntry.COLUMN_NAME_DATE + " TEXT, "
-               + TableEntry.COLUMN_NAME_COMMENT+ " TEXT, "
-               + TableEntry.COLUMN_NAME_XVALS + " BLOB, "
-               + TableEntry.COLUMN_NAME_YVALS + " BLOB";
+        // fft_data -> stores the FFT (Fast Fourier Transform) results
 
         int numImpulses = StartDSP.numberImpulses;
-        System.out.println("The number of Impulses inside SQLite are : " + numImpulses);
-        for(int k = 0; k < numImpulses; k++)
-            create = create + ", " + TableEntry.COLUMN_NAME_IMPULSE + Integer.toString(k) + " BLOB";
+        System.out.println("The number of impulses in the MySQLiteDatabaseHelper are : " + numImpulses);
+
+        create = "CREATE TABLE IF NOT EXISTS " + TableEntry.TABLE_NAME_FFT + " (" + TableEntry._ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "
+                + TableEntry.COLUMN_DATE + " TEXT, "
+                + TableEntry.COLUMN_NAME_FILENAME + " TEXT, "
+                + TableEntry.COLUMN_NAME_LATITUDE + " REAL, "
+                + TableEntry.COLUMN_NAME_LONGITUDE + " REAL, "
+                + TableEntry.COLUMN_NAME_COMMENT + " TEXT, "
+                + TableEntry.COLUMN_NAME_XVALS + " BLOB, "
+                + TableEntry.COLUMN_NAME_YVALS + " BLOB";
+
+                for (int k=0; k<numImpulses; k++)
+                    create = create + ", " + TableEntry.COLUMN_NAME_IMPULSE + Integer.toString(k) + " INTEGER";
 
         create = create + ")";
-
-        //this command executes an SQLite command, in this case
-        //it creates our table.
         db.execSQL(create);
-
-
 
     }
     public void deleteTable(SQLiteDatabase db, String tableName){

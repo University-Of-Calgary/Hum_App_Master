@@ -647,7 +647,7 @@ public class StartDSP extends ActionBarActivity {
                     values.put(TableEntry.COLUMN_COMMENT, " - " + title);
                     values.put(TableEntry.COLUMN_MAX_SIGNAL, strongestSignalFreq);
                     values.put(TableEntry.COLUMN_PERCENTAGE_WORSE_CASE, percentageWorseCase.get(n));
-                    values.put(TableEntry.COLUMN_RATIO_BACKGROUND_NOSE, ratioBackgroundNoise.get(n));
+                    values.put(TableEntry.COLUMN_RATIO_BACKGROUND_NOISE, ratioBackgroundNoise.get(n));
                     db.insert(TableEntry.TABLE_NAME, null, values);
                 }
 
@@ -658,10 +658,10 @@ public class StartDSP extends ActionBarActivity {
                     values.put(TableEntry.COLUMN_MAX_SIGNAL, strongestSignalFreq);
                     if (maximum == ratioBackgroundNoise.size()) {
                         values.put(TableEntry.COLUMN_PERCENTAGE_WORSE_CASE, 0.0);
-                        values.put(TableEntry.COLUMN_RATIO_BACKGROUND_NOSE, ratioBackgroundNoise.get(n));
+                        values.put(TableEntry.COLUMN_RATIO_BACKGROUND_NOISE, ratioBackgroundNoise.get(n));
                     } else {
                         values.put(TableEntry.COLUMN_PERCENTAGE_WORSE_CASE, percentageWorseCase.get(n));
-                        values.put(TableEntry.COLUMN_RATIO_BACKGROUND_NOSE, 0.0);
+                        values.put(TableEntry.COLUMN_RATIO_BACKGROUND_NOISE, 0.0);
 
                     }
                     db.insert(TableEntry.TABLE_NAME, null, values);
