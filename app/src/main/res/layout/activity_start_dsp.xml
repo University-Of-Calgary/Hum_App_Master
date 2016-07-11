@@ -69,6 +69,16 @@
         android:src = "@drawable/ic_play_arrow_black_24dp"
         android:visibility = "invisible"/>
 
+    <ImageButton
+        android:id="@+id/pauseplayback"
+        android:layout_toRightOf="@id/playback"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerVertical="true"
+        android:layout_above="@id/textViewTime"
+        android:src="@drawable/pause_circle_small"
+        android:visibility="invisible"/>
+
     <EditText
         android:id="@+id/Addcomment"
         android:layout_centerHorizontal="true"

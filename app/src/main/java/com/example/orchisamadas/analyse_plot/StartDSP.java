@@ -87,6 +87,7 @@ public class StartDSP extends ActionBarActivity {
     short[][] sampleBuffer;
     double gpsLongitude = 0, gpsLatitude = 0;
     String fileName;
+    boolean isPlaying = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -705,14 +706,22 @@ public class StartDSP extends ActionBarActivity {
 
                 //allowing user to playback on pressing a button
                 ImageButton playback = (ImageButton) findViewById(R.id.playback);
+                ImageButton pause = (ImageButton) findViewById(R.id.pauseplayback);
                 playback.setVisibility(View.VISIBLE);
+                pause.setVisibility(View.VISIBLE);
                 playback.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
+                        isPlaying = true;
                         playbackAudio();
                     }
-                    });
-
+                });
+                pause.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        isPlaying = false;
+                    }
+                });
 
                 TextView showProgress = (TextView) findViewById(R.id.analysing);
                 showProgress.setText("Analysis Complete");
@@ -866,6 +875,7 @@ public class StartDSP extends ActionBarActivity {
         }
         catch(IOException e){}
 
+
         // Create a new AudioTrack object using the same parameters as the AudioRecord
         // object used to create the file.
         AudioTrack audioTrack = new AudioTrack(AudioManager.STREAM_MUSIC,
@@ -875,9 +885,14 @@ public class StartDSP extends ActionBarActivity {
                 audioLength,
                 AudioTrack.MODE_STREAM);
         // Start playback
-        audioTrack.play();
-        // Write the audio buffer to the AudioTrack object
-        audioTrack.write(audio, 0, audioLength);
+        if (isPlaying) {
+            audioTrack.play();
+            // Write the audio buffer to the AudioTrack object
+            audioTrack.write(audio, 0, audioLength);
+        }
+        else {
+            audioTrack.pause();
+        }
     }
 }
 
