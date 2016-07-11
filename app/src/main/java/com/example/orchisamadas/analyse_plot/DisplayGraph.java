@@ -1,36 +1,40 @@
 package com.example.orchisamadas.analyse_plot;
 
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import com.example.orchisamadas.analyse_plot.
-        MySQLiteDatabaseContract.TableEntry;
-
 import android.content.Intent;
-import android.content.pm.ActivityInfo;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Color;
-import android.graphics.Paint;
+import android.media.AudioFormat;
+import android.media.AudioManager;
+import android.media.AudioTrack;
 import android.media.MediaPlayer;
 import android.os.Bundle;
-import android.support.v7.app.ActionBar;
+import android.os.Environment;
 import android.support.v7.app.ActionBarActivity;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.View;
-import android.widget.Button;
 import android.widget.Toast;
 
-//upgrade to GraphView 4.0.1
+import com.example.orchisamadas.analyse_plot.MySQLiteDatabaseContract.TableEntry;
 import com.jjoe64.graphview.GraphView;
 import com.jjoe64.graphview.LegendRenderer;
 import com.jjoe64.graphview.helper.StaticLabelsFormatter;
 import com.jjoe64.graphview.series.BarGraphSeries;
 import com.jjoe64.graphview.series.DataPoint;
 import com.jjoe64.graphview.series.LineGraphSeries;
+
+import java.io.BufferedInputStream;
+import java.io.DataInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+//upgrade to GraphView 4.0.1
 
 
 public class DisplayGraph extends ActionBarActivity {
@@ -46,6 +50,8 @@ public class DisplayGraph extends ActionBarActivity {
     //setting x axis labels to allow zoom in and out in histograms
     public static String [] xLabels = new String [12];
 
+    // Audio Record Settings
+    private final int samplingRate = 8000, numberChannels = 1, audioEncoding = AudioFormat.ENCODING_PCM_16BIT;
 
     /* you save the state of the application in a bundle (typically non-persistent, dynamic data in onSaveInstanceState),
     it can be passed back to onCreate if the activity needs to be recreated (e.g., orientation change)
@@ -245,8 +251,44 @@ public class DisplayGraph extends ActionBarActivity {
         }
 
         if (id == R.id.audioPlayback){
-            // Playback the recording from the database
+            // Playback the recorded sound given the path of the file (Indexed using -> )
+            String query = null;
+            // Select the current date if received date is not selected from the history.
+            if (RECEIVED_DATE == null){
+                query = "SELECT " + TableEntry.COLUMN_NAME_FILENAME + " FROM " +
+                        TableEntry.TABLE_NAME_FFT + " ORDER BY " + TableEntry.COLUMN_NAME_DATE + " DESC LIMIT 1";
+            }
+            else {
+                query = "SELECT " + TableEntry.COLUMN_NAME_FILENAME + " FROM " +
+                        TableEntry.TABLE_NAME_FFT + " WHERE " + TableEntry.COLUMN_NAME_DATE + " = '" + RECEIVED_DATE + "';";
+            }
 
+            String fileName = null;
+            MySQLiteDatabaseHelper databaseHelper = new MySQLiteDatabaseHelper(this);
+            SQLiteDatabase db = databaseHelper.getReadableDatabase();
+            Cursor cursor = db.rawQuery(query, null);
+            System.out.println("The cursor count is : " + cursor.getCount());
+            if (cursor != null) cursor.moveToFirst();
+            fileName = cursor.getString(cursor.getColumnIndex(TableEntry.COLUMN_NAME_FILENAME));
+
+            File file = new File(Environment.getExternalStorageDirectory(), fileName);
+            int audioLength = (int)file.length() / 2;
+            short[] audio = new short[audioLength];
+            try {
+                DataInputStream dataInputStream = new DataInputStream(new BufferedInputStream(new FileInputStream(file)));
+                int n = 0;
+                while (dataInputStream.available() > 0)
+                    audio[n++] = dataInputStream.readShort();
+                dataInputStream.close();
+            } catch (IOException e){
+                System.out.println("Exception while audio playback of type : " + e.toString());
+            }
+
+            // Playback the audio using AudioTrack
+            AudioTrack audioTrack = new AudioTrack(AudioManager.STREAM_MUSIC, samplingRate,
+                    numberChannels, audioEncoding, audioLength, AudioTrack.MODE_STREAM);
+            audioTrack.play();
+            audioTrack.write(audio, 0, audioLength);
         }
 
         return super.onOptionsItemSelected(item);

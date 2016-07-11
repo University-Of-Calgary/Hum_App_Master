@@ -44,7 +44,7 @@
         android:layout_height="wrap_content"
         android:layout_below = "@id/graph_histogram"
         android:layout_marginTop="20dp"
-        android:text = "Principle Developers :\r\nOrchisama Das, Mike Smith and Adrien Gaspard"
+        android:text = "Principle Developers :\r\nOrchisama Das, Mike Smith, Adrien Gaspard"
         android:textColor = "#FFFFFF"
         />
 
@@ -58,7 +58,7 @@
         android:layout_height="wrap_content"
         android:layout_below = "@id/PrincipleDevelopers"
         android:layout_marginTop="10dp"
-        android:text = "Assisted By :\r\n Emily Marasco and Nicolas Lepine"
+        android:text = "Assisted By :\r\n Emily Marasco, Nicolas Lepine and Aditya Agarwal"
         android:textColor = "#FFFFFF"
         />
 
