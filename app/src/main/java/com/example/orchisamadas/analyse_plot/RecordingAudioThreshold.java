@@ -25,6 +25,9 @@ public class RecordingAudioThreshold extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_generate_spectrogram);
 
+        // Initialize the timer (used to cancel the thread if it's not running).
+        timerThread = new Timer();
+
         // Method to calibrate the microphone
         startRecording = (Button) findViewById(R.id.button_startRecording);
         stopRecording = (Button) findViewById(R.id.button_stopRecording);
@@ -49,7 +52,6 @@ public class RecordingAudioThreshold extends AppCompatActivity {
                 }
 
                 // start the timer to print the recorded values
-                timerThread = new Timer();
                 timerThread.schedule(new TimerTask() {
                     @Override
                     public void run() {
