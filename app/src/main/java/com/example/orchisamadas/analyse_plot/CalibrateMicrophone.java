@@ -62,7 +62,7 @@ public class CalibrateMicrophone extends AppCompatActivity {
             public void onClick(View v) {
                 // Please insert an external microphone to start recording
                 externalMicrophoneRecording();
-                // androidMicrophoneRecording();
+                androidMicrophoneRecording();
             }
         });
     }
@@ -97,7 +97,19 @@ public class CalibrateMicrophone extends AppCompatActivity {
         });
     }
 
-    public class CaptureAudio extends AsyncTask<String, Void, Void> {
+    public void androidMicrophoneRecording(){
+        Toast.makeText(CalibrateMicrophone.this, "Continue to record using the Android microphone",
+                Toast.LENGTH_SHORT).show();
+        androidRecording.setVisibility(View.VISIBLE);
+        androidRecording.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                new CaptureAudio().execute(ANDROID_MIC_RECORDING);
+            }
+        });
+    }
+
+    public class CaptureAudio extends AsyncTask<String, Void, String> {
 
         @Override
         protected void onPreExecute() {
@@ -113,7 +125,7 @@ public class CalibrateMicrophone extends AppCompatActivity {
         }
 
         @Override
-        protected Void doInBackground(String... params) {
+        protected String doInBackground(String... params) {
             int samplesRead = 0;
             int sampleBufferLength = nearestPow2Length(SAMPLING_RATE * RECORDING_DURATION);
             short[] sampleBuffer = new short[sampleBufferLength];
@@ -126,30 +138,36 @@ public class CalibrateMicrophone extends AppCompatActivity {
                 externalMicValues = normalizeTimeDomainData(sampleBuffer, max);
                 applyBasicWindow(externalMicValues);
                 int error = doubleFFT(externalMicValues);
-                Toast.makeText(CalibrateMicrophone.this, "The error associated with External Mic is : "
-                        + error, Toast.LENGTH_SHORT).show();
+                /**Toast.makeText(CalibrateMicrophone.this, "The error associated with External Mic is : "
+                        + Integer.toString(error), Toast.LENGTH_SHORT).show();*/
+                System.out.println("The error associated with External microphone recording is : " + error);
             }
             else if (params[0].equals(ANDROID_MIC_RECORDING)){
                 androidMicValues = normalizeTimeDomainData(sampleBuffer, max);
                 applyBasicWindow(androidMicValues);
                 int error = doubleFFT(androidMicValues);
-                Toast.makeText(CalibrateMicrophone.this, "The error associated with Android Microphone is : " +
-                        error, Toast.LENGTH_SHORT).show();
+                /**Toast.makeText(CalibrateMicrophone.this, "The error associated with Android Microphone is : " +
+                        error, Toast.LENGTH_SHORT).show();*/
+                System.out.println("The error associated with Android microphone recording is : " + error);
             }
             // Clear the recorder
             if (recorder != null) {recorder.release(); recorder=null;}
             if(params[0].equals(EXTERNAL_MIC_RECORDING)) saveRecording(sampleBuffer, EXTERNAL_AUDIO_FILENAME);
             else if (params[0].equals(ANDROID_MIC_RECORDING)) saveRecording(sampleBuffer, ANDROID_AUDIO_FILENAME);
-            return null;
+            return params[0];
         }
 
         @Override
-        protected void onPostExecute(Void aVoid) {
+        protected void onPostExecute(String aVoid) {
+            final String fileName = aVoid;
             startPlayback.setVisibility(View.VISIBLE);
             startPlayback.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    playbackRecording(EXTERNAL_AUDIO_FILENAME);
+                    if(fileName.equals(EXTERNAL_MIC_RECORDING))
+                       playbackRecording(EXTERNAL_AUDIO_FILENAME);
+                    else if(fileName.equals(ANDROID_MIC_RECORDING))
+                        playbackRecording(ANDROID_AUDIO_FILENAME);
                 }
             });
         }
@@ -205,18 +223,6 @@ public class CalibrateMicrophone extends AppCompatActivity {
         int temp = (int) (Math.log(length) / Math.log(2.0) + 0.5); length = 1;
         for (int n=1; n<=temp; n++) length*=2;
         return length;
-    }
-
-    public void androidMicrophoneRecording(){
-        Toast.makeText(CalibrateMicrophone.this, "Continue to record using the Android microphone",
-                Toast.LENGTH_SHORT).show();
-        androidRecording.setVisibility(View.VISIBLE);
-        androidRecording.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                new CaptureAudio().execute();
-            }
-        });
     }
 
     // Method for saving the recorded file into the phone's memory
