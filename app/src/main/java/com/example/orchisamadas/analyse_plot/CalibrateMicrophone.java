@@ -23,8 +23,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -41,9 +39,12 @@ public class CalibrateMicrophone extends AppCompatActivity {
             AUDIO_ENCODING = AudioFormat.ENCODING_PCM_16BIT, RECORDING_DURATION = 5;
     final String EXTERNAL_AUDIO_FILENAME = "external_audio.wav", ANDROID_AUDIO_FILENAME = "android_audio.wav";
     AudioRecord recorder;
-    Button startCalibration, startRecording, startPlayback;
+    Button startCalibration, startRecording, startPlayback, androidRecording;
     TextView timer;
     CounterClass counterClass = new CounterClass(RECORDING_DURATION * 1000, 1000);
+    double[] externalMicValues, androidMicValues;
+    final String EXTERNAL_MIC_RECORDING = "External Microphone",
+            ANDROID_MIC_RECORDING = "Android Microphone";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -53,6 +54,7 @@ public class CalibrateMicrophone extends AppCompatActivity {
         startCalibration = (Button) findViewById(R.id.button_calibrate_microphone);
         startRecording = (Button) findViewById(R.id.button_start_recording);
         startPlayback = (Button) findViewById(R.id.button_start_playback);
+        androidRecording = (Button) findViewById(R.id.button_microphone_recording);
         timer = (TextView) findViewById(R.id.textView_timer);
 
         startCalibration.setOnClickListener(new View.OnClickListener() {
@@ -90,12 +92,12 @@ public class CalibrateMicrophone extends AppCompatActivity {
         startRecording.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                new CaptureAudio().execute();
+                new CaptureAudio().execute(EXTERNAL_MIC_RECORDING);
             }
         });
     }
 
-    public class CaptureAudio extends AsyncTask<Void, Void, Void> {
+    public class CaptureAudio extends AsyncTask<String, Void, Void> {
 
         @Override
         protected void onPreExecute() {
@@ -111,7 +113,7 @@ public class CalibrateMicrophone extends AppCompatActivity {
         }
 
         @Override
-        protected Void doInBackground(Void... params) {
+        protected Void doInBackground(String... params) {
             int samplesRead = 0;
             int sampleBufferLength = nearestPow2Length(SAMPLING_RATE * RECORDING_DURATION);
             short[] sampleBuffer = new short[sampleBufferLength];
@@ -119,8 +121,25 @@ public class CalibrateMicrophone extends AppCompatActivity {
             recorder.startRecording();
             while (samplesRead < sampleBufferLength)
                 samplesRead += recorder.read(sampleBuffer, samplesRead, sampleBufferLength - samplesRead);
+            double max = calculateMax(sampleBuffer);
+            if(params[0].equals(EXTERNAL_MIC_RECORDING)) {
+                externalMicValues = normalizeTimeDomainData(sampleBuffer, max);
+                applyBasicWindow(externalMicValues);
+                int error = doubleFFT(externalMicValues);
+                Toast.makeText(CalibrateMicrophone.this, "The error associated with External Mic is : "
+                        + error, Toast.LENGTH_SHORT).show();
+            }
+            else if (params[0].equals(ANDROID_MIC_RECORDING)){
+                androidMicValues = normalizeTimeDomainData(sampleBuffer, max);
+                applyBasicWindow(androidMicValues);
+                int error = doubleFFT(androidMicValues);
+                Toast.makeText(CalibrateMicrophone.this, "The error associated with Android Microphone is : " +
+                        error, Toast.LENGTH_SHORT).show();
+            }
+            // Clear the recorder
             if (recorder != null) {recorder.release(); recorder=null;}
-            saveRecording(sampleBuffer, EXTERNAL_AUDIO_FILENAME);
+            if(params[0].equals(EXTERNAL_MIC_RECORDING)) saveRecording(sampleBuffer, EXTERNAL_AUDIO_FILENAME);
+            else if (params[0].equals(ANDROID_MIC_RECORDING)) saveRecording(sampleBuffer, ANDROID_AUDIO_FILENAME);
             return null;
         }
 
@@ -141,6 +160,47 @@ public class CalibrateMicrophone extends AppCompatActivity {
         }
     }
 
+    public int doubleFFT(double[] samples){
+        double[] real = new double[samples.length], imag = new double[samples.length];
+        System.arraycopy(samples, 0, real, 0, samples.length);
+        for(int n=0; n<samples.length; n++) imag[n] = 0;
+        int error = FFTbase.fft(real, imag, true);
+        if(error==-1) return -1;
+        for(int n=0; n<samples.length; n++) samples[n] = Math.sqrt(real[n]*real[n] + imag[n]*imag[n]);
+        return 0;
+    }
+
+    public static void applyBasicWindow(double[] samples){
+        samples[0] *= 0.0625;
+        samples[1] *= 0.125;
+        samples[2] *= 0.25;
+        samples[3] *= 0.5;
+        samples[4] *= 0.75;
+        samples[5] *= 0.875;
+        samples[6] *= 0.9375;
+
+        samples[samples.length - 1] *= 0.0625;
+        samples[samples.length - 2] *= 0.125;
+        samples[samples.length - 3] *= 0.25;
+        samples[samples.length - 4] *= 0.5;
+        samples[samples.length - 5] *= 0.75;
+        samples[samples.length - 6] *= 0.875;
+        samples[samples.length - 7] *= 0.9375;
+    }
+
+    public double[] normalizeTimeDomainData(short[] sampleBuffer, double max){
+        double[] samples = new double[sampleBuffer.length];
+        for (int i=0; i<sampleBuffer.length; i++) samples[i] /= max;
+        return samples;
+    }
+
+    public double calculateMax(short[] sampleBuffer){
+        double max = 0.0;
+        for (int i=0; i<sampleBuffer.length; i++)
+            if (sampleBuffer[i] > max) max=sampleBuffer[i];
+        return max;
+    }
+
     public int nearestPow2Length(int length){
         int temp = (int) (Math.log(length) / Math.log(2.0) + 0.5); length = 1;
         for (int n=1; n<=temp; n++) length*=2;
@@ -148,7 +208,15 @@ public class CalibrateMicrophone extends AppCompatActivity {
     }
 
     public void androidMicrophoneRecording(){
-
+        Toast.makeText(CalibrateMicrophone.this, "Continue to record using the Android microphone",
+                Toast.LENGTH_SHORT).show();
+        androidRecording.setVisibility(View.VISIBLE);
+        androidRecording.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                new CaptureAudio().execute();
+            }
+        });
     }
 
     // Method for saving the recorded file into the phone's memory

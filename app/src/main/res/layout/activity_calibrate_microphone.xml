@@ -26,6 +26,13 @@
         android:text="Start Recording"
         android:visibility="invisible"/>
 
+    <Button
+        android:id="@+id/button_microphone_recording"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Start Android Microphone Recording"
+        android:visibility="invisible"/>
+
     <TextView
         android:id="@+id/textView_timer"
         android:layout_width="wrap_content"
