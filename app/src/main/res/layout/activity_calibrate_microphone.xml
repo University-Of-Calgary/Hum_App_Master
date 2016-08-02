@@ -45,4 +45,11 @@
         android:visibility="invisible"
         android:text="Start Playback"/>
 
+    <Button
+        android:id="@+id/button_frequency_gain"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:visibility="visible"
+        android:text="Calculate Frequency Gain"/>
+
 </LinearLayout>

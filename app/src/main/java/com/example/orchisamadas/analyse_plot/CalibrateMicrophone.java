@@ -24,6 +24,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -40,12 +41,14 @@ public class CalibrateMicrophone extends AppCompatActivity {
             AUDIO_ENCODING = AudioFormat.ENCODING_PCM_16BIT, RECORDING_DURATION = 5;
     final String EXTERNAL_AUDIO_FILENAME = "external_audio.wav", ANDROID_AUDIO_FILENAME = "android_audio.wav";
     AudioRecord recorder;
-    Button startCalibration, startRecording, startPlayback, androidRecording;
+    Button startCalibration, startRecording, startPlayback, androidRecording, calculateFrequencyGain;
     TextView timer;
     CounterClass counterClass = new CounterClass(RECORDING_DURATION * 1000, 1000);
     double[] externalMicValues, androidMicValues;
     final String EXTERNAL_MIC_RECORDING = "External Microphone",
             ANDROID_MIC_RECORDING = "Android Microphone";
+    double[] frequencyGain, frequencyAveragedExternal, frequencyAveragedAndroid;
+    double REFSPL = 0.00002; // Reference Sound Pressure Level equal to 20 uPa.
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -56,6 +59,7 @@ public class CalibrateMicrophone extends AppCompatActivity {
         startRecording = (Button) findViewById(R.id.button_start_recording);
         startPlayback = (Button) findViewById(R.id.button_start_playback);
         androidRecording = (Button) findViewById(R.id.button_microphone_recording);
+        calculateFrequencyGain = (Button) findViewById(R.id.button_frequency_gain);
         timer = (TextView) findViewById(R.id.textView_timer);
 
         startCalibration.setOnClickListener(new View.OnClickListener() {
@@ -66,6 +70,24 @@ public class CalibrateMicrophone extends AppCompatActivity {
                 androidMicrophoneRecording();
             }
         });
+
+        calculateFrequencyGain.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                // Method to calculate the frequency gain from the prerecorded values
+                // from the external microphone and the internal android microphone
+                calculateFrequencyGain();
+            }
+        });
+
+    }
+
+    public void calculateFrequencyGain(){
+        // Calculate the frequency gain from the two recordings
+        frequencyGain = new double[frequencyAveragedExternal.length];
+        for(int i=0; i<frequencyAveragedExternal.length; i++)
+            frequencyGain[i] = frequencyAveragedExternal[i] / frequencyAveragedAndroid[i];
+        System.out.println("The length of the frequency gain calculated is : " + frequencyGain.length);
     }
 
     public class CounterClass extends CountDownTimer{
@@ -139,20 +161,20 @@ public class CalibrateMicrophone extends AppCompatActivity {
                 externalMicValues = normalizeTimeDomainData(sampleBuffer, max);
                 applyBasicWindow(externalMicValues);
                 int error = doubleFFT(externalMicValues);
+                // Divide the externalMicValues by the Reference Sound Pressure Level
+                for(int i=0; i<externalMicValues.length; i++) externalMicValues[i] /= REFSPL;
                 Log.e("EXTERNAL_MIC_LENGTH", "The length of the external Microphone recording is : " +
                         externalMicValues.length);
-                /**Toast.makeText(CalibrateMicrophone.this, "The error associated with External Mic is : "
-                        + Integer.toString(error), Toast.LENGTH_SHORT).show();*/
                 System.out.println("The error associated with External microphone recording is : " + error);
             }
             else if (params[0].equals(ANDROID_MIC_RECORDING)){
                 androidMicValues = normalizeTimeDomainData(sampleBuffer, max);
                 applyBasicWindow(androidMicValues);
                 int error = doubleFFT(androidMicValues);
+                // Divide the androidMicValues by the Reference Sound Pressure Level
+                for(int i=0; i<androidMicValues.length; i++) androidMicValues[i] /= REFSPL;
                 Log.e("INTERNAL_MIC_LENGTH", "The length of the internal Microphone recording is : " +
                         androidMicValues.length);
-                /**Toast.makeText(CalibrateMicrophone.this, "The error associated with Android Microphone is : " +
-                        error, Toast.LENGTH_SHORT).show();*/
                 System.out.println("The error associated with Android microphone recording is : " + error);
             }
             // Clear the recorder
@@ -179,6 +201,29 @@ public class CalibrateMicrophone extends AppCompatActivity {
                 double[] xValsExternal = new double[tempBufferExternal.length];
                 for(int k=0; k<xValsExternal.length; k++)
                     xValsExternal[k] = k * SAMPLING_RATE / (2*xValsExternal.length);
+
+                int j = 0;
+                ArrayList<Double> frequencyAveraged =  new ArrayList<Double>();
+                // Calculate the frequency gain in each frequency band
+                for(int i=0; i<SAMPLING_RATE/2; i+=25){
+                    double temp = 0.0; int count = 0;
+                    while(j<tempBufferExternal.length && xValsExternal[j] >= i && xValsExternal[j] < (i+25)) {
+                        temp += tempBufferExternal[j];
+                        count ++;
+                        j++;
+                    }
+                    frequencyAveraged.add(temp/(double)count);
+                }
+
+                // Convert the ArrayList into a double array
+                // The frequency ranges are
+                // (0-25) Hz - amplitude_average1
+                // (25-50) Hz - amplitude_average2
+                // (50-75) Hz - amplitude_average3
+                // ...
+                frequencyAveragedExternal = new double[frequencyAveraged.size()];
+                for(int i=0; i<frequencyAveraged.size(); i++) frequencyAveragedExternal[i] = frequencyAveraged.get(i);
+                System.out.println("The length of the double averaged array is : " + frequencyAveragedExternal.length);
             }
 
             else if(params[0].equals(ANDROID_MIC_RECORDING)){
@@ -196,6 +241,24 @@ public class CalibrateMicrophone extends AppCompatActivity {
                 double[] xValsAndroid = new double[tempBufferAndroid.length];
                 for(int k=0; k<xValsAndroid.length; k++)
                     xValsAndroid[k] = k * SAMPLING_RATE / (2*xValsAndroid.length);
+
+                // Apply the frequency gain in each frequency band
+                int j = 0;
+                ArrayList<Double> frequencyAveraged = new ArrayList<Double>();
+                for(int i=0; i<SAMPLING_RATE/2; i+=25){
+                    double temp = 0.0; int count = 0;
+                    while(j<tempBufferAndroid.length && xValsAndroid[j] >= i && xValsAndroid[j] < (i+25)){
+                        temp += tempBufferAndroid[j];
+                        count++;
+                        j++;
+                    }
+                    frequencyAveraged.add(temp/count);
+                }
+
+                // Convert the Array List into a double array
+                frequencyAveragedAndroid = new double[frequencyAveraged.size()];
+                for(int i=0; i<frequencyAveraged.size(); i++) frequencyAveragedAndroid[i] = frequencyAveraged.get(i);
+                System.out.println("The length of the frequencyAveragedAndroid is : " + frequencyAveragedAndroid.length);
             }
 
             return params[0];
