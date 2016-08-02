@@ -10,6 +10,7 @@ import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.os.Environment;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
@@ -138,6 +139,8 @@ public class CalibrateMicrophone extends AppCompatActivity {
                 externalMicValues = normalizeTimeDomainData(sampleBuffer, max);
                 applyBasicWindow(externalMicValues);
                 int error = doubleFFT(externalMicValues);
+                Log.e("EXTERNAL_MIC_LENGTH", "The length of the external Microphone recording is : " +
+                        externalMicValues.length);
                 /**Toast.makeText(CalibrateMicrophone.this, "The error associated with External Mic is : "
                         + Integer.toString(error), Toast.LENGTH_SHORT).show();*/
                 System.out.println("The error associated with External microphone recording is : " + error);
@@ -146,6 +149,8 @@ public class CalibrateMicrophone extends AppCompatActivity {
                 androidMicValues = normalizeTimeDomainData(sampleBuffer, max);
                 applyBasicWindow(androidMicValues);
                 int error = doubleFFT(androidMicValues);
+                Log.e("INTERNAL_MIC_LENGTH", "The length of the internal Microphone recording is : " +
+                        androidMicValues.length);
                 /**Toast.makeText(CalibrateMicrophone.this, "The error associated with Android Microphone is : " +
                         error, Toast.LENGTH_SHORT).show();*/
                 System.out.println("The error associated with Android microphone recording is : " + error);
@@ -154,6 +159,45 @@ public class CalibrateMicrophone extends AppCompatActivity {
             if (recorder != null) {recorder.release(); recorder=null;}
             if(params[0].equals(EXTERNAL_MIC_RECORDING)) saveRecording(sampleBuffer, EXTERNAL_AUDIO_FILENAME);
             else if (params[0].equals(ANDROID_MIC_RECORDING)) saveRecording(sampleBuffer, ANDROID_AUDIO_FILENAME);
+
+            int samplesPerPoint = 32; // samples per point
+
+            // Calculate the amplitude values as Samples_Per_Bin
+            if(params[0].equals(EXTERNAL_MIC_RECORDING)){
+                int width = externalMicValues.length / samplesPerPoint / 2;
+                double maxYvalExternal = 0; // Stores the max amplitude (external microphone)
+                // Stores the amplitude values (external microphone)
+                double[] tempBufferExternal = new double[width];
+                for(int k=0; k<tempBufferExternal.length; k++){
+                    for(int n=0; n<samplesPerPoint; n++)
+                        tempBufferExternal[k] += externalMicValues[k*samplesPerPoint + n];
+                    tempBufferExternal[k] /= (double)samplesPerPoint;
+                    if(maxYvalExternal < tempBufferExternal[k]) maxYvalExternal = tempBufferExternal[k];
+                }
+
+                // Stores the frequency values (external microphone)
+                double[] xValsExternal = new double[tempBufferExternal.length];
+                for(int k=0; k<xValsExternal.length; k++)
+                    xValsExternal[k] = k * SAMPLING_RATE / (2*xValsExternal.length);
+            }
+
+            else if(params[0].equals(ANDROID_MIC_RECORDING)){
+                int width = androidMicValues.length / samplesPerPoint / 2;
+                double maxYvalAndroid = 0; // Stores the max amplitude (android microphone)
+                // Stores the amplitude values (android microphone)
+                double[] tempBufferAndroid = new double[width];
+                for(int k=0; k<tempBufferAndroid.length; k++){
+                    for(int n=0; n<samplesPerPoint; n++)
+                        tempBufferAndroid[k] /= (double) samplesPerPoint;
+                    if(maxYvalAndroid < tempBufferAndroid[k]) maxYvalAndroid = tempBufferAndroid[k];
+                }
+
+                // Stores the frequency values (android microphone)
+                double[] xValsAndroid = new double[tempBufferAndroid.length];
+                for(int k=0; k<xValsAndroid.length; k++)
+                    xValsAndroid[k] = k * SAMPLING_RATE / (2*xValsAndroid.length);
+            }
+
             return params[0];
         }
 
