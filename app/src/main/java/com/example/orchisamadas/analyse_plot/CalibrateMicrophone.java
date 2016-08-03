@@ -1,5 +1,6 @@
 package com.example.orchisamadas.analyse_plot;
 
+import android.content.Context;
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioRecord;
@@ -24,6 +25,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.concurrent.TimeUnit;
 
@@ -49,6 +52,8 @@ public class CalibrateMicrophone extends AppCompatActivity {
             ANDROID_MIC_RECORDING = "Android Microphone";
     double[] frequencyGain, frequencyAveragedExternal, frequencyAveragedAndroid;
     double REFSPL = 0.00002; // Reference Sound Pressure Level equal to 20 uPa.
+    final String DIRECTORY_NAME = "Hum_Application", GAIN_FILENAME = "frequency_gain_values.txt";
+    CaptureAudio captureAudio;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -77,9 +82,43 @@ public class CalibrateMicrophone extends AppCompatActivity {
                 // Method to calculate the frequency gain from the prerecorded values
                 // from the external microphone and the internal android microphone
                 calculateFrequencyGain();
+                // Print frequency gain values
+                for (int i = 0; i < frequencyGain.length; i++)
+                    System.out.print(frequencyGain[i] + " ");
+                System.out.println();
+                // Frequency Gain values needs to be saved to a file
+                saveGainValuesToFile();
             }
         });
 
+    }
+
+    @Override
+    protected void onPause() {
+        if(captureAudio!=null) captureAudio.cancel(false);
+        super.onPause();
+        finish();
+    }
+
+    // Method to save the frequency gain values to a file
+    public void saveGainValuesToFile(){
+        File humDir = new File(Environment.getExternalStorageDirectory(), DIRECTORY_NAME);
+        if(!humDir.exists()) humDir.mkdir();
+        File file = new File(humDir + File.separator + GAIN_FILENAME);
+        System.out.println("File checked for existence : " + humDir + File.separator + GAIN_FILENAME);
+        if(!file.exists()){
+            try {
+                PrintWriter printWriter = new PrintWriter(file);
+                for(double gainValue : frequencyGain)
+                    printWriter.println(Double.toString(gainValue));
+                printWriter.flush();
+                printWriter.close();
+            } catch(IOException e){
+                System.out.println("Exception of type : " + e.toString());
+            }
+        } else{
+            System.out.println("File already exists");
+        }
     }
 
     public void calculateFrequencyGain(){
@@ -115,7 +154,8 @@ public class CalibrateMicrophone extends AppCompatActivity {
         startRecording.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                new CaptureAudio().execute(EXTERNAL_MIC_RECORDING);
+                // new CaptureAudio().execute(EXTERNAL_MIC_RECORDING);
+                captureAudio = new CaptureAudio(); captureAudio.execute(EXTERNAL_MIC_RECORDING);
             }
         });
     }
@@ -127,7 +167,8 @@ public class CalibrateMicrophone extends AppCompatActivity {
         androidRecording.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                new CaptureAudio().execute(ANDROID_MIC_RECORDING);
+                // new CaptureAudio().execute(ANDROID_MIC_RECORDING);
+                captureAudio = new CaptureAudio(); captureAudio.execute(ANDROID_MIC_RECORDING);
             }
         });
     }
@@ -157,12 +198,36 @@ public class CalibrateMicrophone extends AppCompatActivity {
             while (samplesRead < sampleBufferLength)
                 samplesRead += recorder.read(sampleBuffer, samplesRead, sampleBufferLength - samplesRead);
             double max = calculateMax(sampleBuffer);
+            System.out.println("The external mic recording max value is : " + max);
             if(params[0].equals(EXTERNAL_MIC_RECORDING)) {
+                System.out.println("Printing external mic values normally");
+                for(int i=0; i<30; i++) System.out.print(sampleBuffer[i] + " ");
+                for(int i=1111; i<1200; i++) System.out.print(sampleBuffer[i] + " ");
+                System.out.println();
                 externalMicValues = normalizeTimeDomainData(sampleBuffer, max);
+                System.out.println("Printing external mic values after normalization");
+                for(int i=0; i<30; i++) System.out.print(externalMicValues[i] + " ");
+                for(int i=1111; i<1200; i++) System.out.print(externalMicValues[i] + " ");
+                System.out.println();
                 applyBasicWindow(externalMicValues);
+                System.out.println("Printing external mic values after applying basic window");
+                for(int i=0; i<30; i++) System.out.print(externalMicValues[i] + " ");
+                for(int i=1111; i<1200; i++) System.out.print(externalMicValues[i] + " ");
+                System.out.println();
+
                 int error = doubleFFT(externalMicValues);
+                System.out.println("The length of the external mic value after fft : " +
+                        externalMicValues.length);
+                System.out.println("Printing external mic values after applying fft");
+                for(int i=0; i<30; i++) System.out.print(externalMicValues[i] + " ");
+                for(int i=1111; i<1200; i++) System.out.print(externalMicValues[i] + " ");
+                System.out.println();
                 // Divide the externalMicValues by the Reference Sound Pressure Level
                 for(int i=0; i<externalMicValues.length; i++) externalMicValues[i] /= REFSPL;
+                System.out.println("Printing external mic values after dividing by REFSPL");
+                for(int i=0; i<30; i++) System.out.print(externalMicValues[i] + " ");
+                for(int i=1111; i<1200; i++) System.out.print(externalMicValues[i] + " ");
+                System.out.println();
                 Log.e("EXTERNAL_MIC_LENGTH", "The length of the external Microphone recording is : " +
                         externalMicValues.length);
                 System.out.println("The error associated with External microphone recording is : " + error);
@@ -223,7 +288,7 @@ public class CalibrateMicrophone extends AppCompatActivity {
                 // ...
                 frequencyAveragedExternal = new double[frequencyAveraged.size()];
                 for(int i=0; i<frequencyAveraged.size(); i++) frequencyAveragedExternal[i] = frequencyAveraged.get(i);
-                System.out.println("The length of the double averaged array is : " + frequencyAveragedExternal.length);
+                System.out.println("The length of the external recording array is : " + frequencyAveragedExternal.length);
             }
 
             else if(params[0].equals(ANDROID_MIC_RECORDING)){
@@ -315,7 +380,7 @@ public class CalibrateMicrophone extends AppCompatActivity {
 
     public double[] normalizeTimeDomainData(short[] sampleBuffer, double max){
         double[] samples = new double[sampleBuffer.length];
-        for (int i=0; i<sampleBuffer.length; i++) samples[i] /= max;
+        for (int i=0; i<sampleBuffer.length; i++) samples[i] = sampleBuffer[i] / max;
         return samples;
     }
 
