@@ -448,7 +448,7 @@ public class StartDSP extends ActionBarActivity {
 
 
             String date = DateFormat.format("LLL dd, yyyy HH:mm", new Date()).toString();
-            vals.put(TableEntry.COLUMN_NAME_DATE, date);
+            vals.put(TableEntry.COLUMN_NAME_DATE, date);  
             vals.put(TableEntry.COLUMN_NAME_COMMENT, " - " + title);
 
             // check if the gps location in enabled
