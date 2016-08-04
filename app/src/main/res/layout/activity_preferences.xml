@@ -116,22 +116,16 @@
             <TextView
                 android:layout_width="fill_parent"
                 android:layout_height="wrap_content"
-                android:text="Turn GPS On / Off"
+                android:text="Use Calibrated Values"
                 android:layout_weight="4"/>
 
             <Switch
-                android:id="@+id/parametric_switch_gps"
+                android:id="@+id/parametric_switch_calibrate"
                 android:layout_width="fill_parent"
                 android:layout_height="wrap_content"
                 android:layout_weight="6"/>
-        </LinearLayout>
 
-        <TextView
-            android:layout_marginTop="10dp"
-            android:text="By enabling this, you consent to give us your GPS location"
-            android:textColor="#0000FF"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content" />
+        </LinearLayout>
 
         <LinearLayout
             android:layout_width="fill_parent"
@@ -151,6 +145,32 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="6"/>
         </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:weightSum="10">
+
+            <TextView
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:text="Turn GPS On / Off"
+                android:layout_weight="4"/>
+
+            <Switch
+                android:id="@+id/parametric_switch_gps"
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="6"/>
+        </LinearLayout>
+
+        <TextView
+            android:layout_marginTop="10dp"
+            android:text="By enabling this, you consent to give us your GPS location"
+            android:textColor="#0000FF"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
 
         <ImageButton
             android:id="@+id/parametric_button_storedata"

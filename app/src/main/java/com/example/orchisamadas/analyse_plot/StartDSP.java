@@ -1,7 +1,9 @@
 package com.example.orchisamadas.analyse_plot;
 
+import android.app.AlertDialog;
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.sqlite.SQLiteDatabase;
@@ -19,7 +21,9 @@ import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.os.Environment;
 import android.os.Handler;
+import android.provider.ContactsContract;
 import android.support.v7.app.ActionBarActivity;
+//import android.support.v7.app.AlertDialog;
 import android.text.format.DateFormat;
 import android.util.Log;
 import android.view.Menu;
@@ -38,11 +42,13 @@ import com.example.orchisamadas.analyse_plot.MySQLiteDatabaseContract.TableEntry
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
+import java.io.BufferedReader;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -66,6 +72,10 @@ public class StartDSP extends ActionBarActivity {
     public static final String thresholdNoiseKey = "thresholdKey";
     public static final String gpsValueKey = "gpsKey";
     public static final String originalStoreKey = "originalKey";
+    public static final String calibratedValuesKey = "useCalibratedKey";
+
+    final String GAIN_FILENAME = "frequency_gain_values.txt";
+    final String DIRECTORY_NAME = "Hum_Application";
 
     LocationManager locationManager;
     LocationListener locationListener;
@@ -88,6 +98,7 @@ public class StartDSP extends ActionBarActivity {
     double gpsLongitude = 0, gpsLatitude = 0;
     String fileName;
     boolean isPlaying = false;
+    double[] frequencyAveraged;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -223,11 +234,47 @@ public class StartDSP extends ActionBarActivity {
             TextHandleRemainingImpulses.setText(getResources().getString
                     (R.string.remaining_impulse_leadtext) + numberRecordings);
             textViewTime = (TextView)findViewById(R.id.textViewTime);
-            captureAudio = new CaptureAudio(); captureAudio.execute();
+            captureAudio = new CaptureAudio();
+            checkCalibrationParameters();
+            captureAudio.execute();
             }
         });
     }
 
+    public void checkCalibrationParameters(){
+        /**
+         * Checks if the calibrated values are to be used
+         * Yes -> Use the calibrated values calculated as frequency gain values
+         * No -> Use the frequency gain value as 1 for each frequency band
+         * If the calibration file does not exist, it asks the user to create one first
+         */
+        if(preferences.getString(calibratedValuesKey, "no").equals("yes")){
+            // Check for the existence of the file
+            File file = new File(Environment.getExternalStorageDirectory() +
+                    File.separator + DIRECTORY_NAME + File.separator + GAIN_FILENAME);
+            System.out.println("File name checked for existence : " +
+                    Environment.getExternalStorageDirectory() + File.separator + DIRECTORY_NAME + File.separator + GAIN_FILENAME);
+            // If the file does not exist, ask the user to create one first
+            ArrayList<Double> frequencyAveragedValues = new ArrayList<Double>();
+            if (!file.exists() && !file.isDirectory()) createCalibrationFile();
+            else{
+                try {
+                    // Load the calibrated values from the file
+                    int i = 0;
+                    BufferedReader bufferedReader = new BufferedReader(new FileReader(file));
+                    String line = bufferedReader.readLine();
+                    do{
+                        // frequencyAveraged[i++] = Double.parseDouble(line);
+                        frequencyAveragedValues.add(Double.parseDouble(line));
+                    } while(bufferedReader.readLine()!=null);
+                } catch (IOException e){
+                    System.out.println("Exception while reading calibrated values from file of type : " + e.toString());
+                }
+                frequencyAveraged = new double[frequencyAveragedValues.size()];
+                for(int i=0; i<frequencyAveraged.length; i++) frequencyAveraged[i] = frequencyAveragedValues.get(i);
+            }
+        }
+    }
 
     @Override
     protected void onPause(){
@@ -235,6 +282,26 @@ public class StartDSP extends ActionBarActivity {
             captureAudio.cancel(false);
         super.onPause();
         finish();
+    }
+
+    // Pops the dialog asking the user to create a calibration file.
+    // This dialog is shown if the calibration does not exist already
+    public void createCalibrationFile(){
+        captureAudio.cancel(true);
+        // Pops up the alert dialog to allow the user to create the calibration file
+        AlertDialog.Builder dialogBuilder = new AlertDialog.Builder(StartDSP.this);
+        dialogBuilder.setTitle("You have chosen to use calibrated microphone values.");
+        dialogBuilder.setMessage("The calibrated values do not exists. Do you wish to create one?");
+        dialogBuilder.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                Intent calibrateIntent = new Intent(StartDSP.this, CalibrateMicrophone.class);
+                startActivity(calibrateIntent);
+            }
+        });
+
+        AlertDialog dialog = dialogBuilder.create();
+        dialog.show();
     }
 
 
@@ -260,7 +327,8 @@ public class StartDSP extends ActionBarActivity {
                     Toast.makeText(StartDSP.this, getResources().getString(R.string.recorder_init_fail),Toast.LENGTH_LONG).show();
                 recorder.release();
                 recorder=null;
-                return;}
+                return;
+            }
         }
 
         protected Integer doInBackground(Void ... params) {
@@ -320,7 +388,6 @@ public class StartDSP extends ActionBarActivity {
             //save recorded audio to an external file in memory card to enable playback option
             saveRecord(sampleBuffer, sampleBufferLength);
 
-
             //analysing data
             // final int numImpulses =
             //        getResources().getInteger(R.integer.num_impulses);
@@ -353,7 +420,6 @@ public class StartDSP extends ActionBarActivity {
                 sampleBuffer = null;
                 return -1;
             }
-
 
             /*samples[][] contains the result of FFT.
             Store the FFT results into table fft_data.
@@ -388,6 +454,12 @@ public class StartDSP extends ActionBarActivity {
 
                 if(maxYval < tempBuffer[k])
                     maxYval = tempBuffer[k];
+            }
+
+            if(!preferences.getString(calibratedValuesKey, "no").equals("yes")){
+                frequencyAveraged = new double[getResources().getInteger(R.integer.sample_rate)/25/2];
+                for(int i=0; i<getResources().getInteger(R.integer.sample_rate)/25/2; i++)
+                    frequencyAveraged[i] = 1.0;
             }
 
             ContentValues vals = new ContentValues();
@@ -434,6 +506,15 @@ public class StartDSP extends ActionBarActivity {
             for(int k = 0; k < xVals.length; k++)
                 xVals[k] = k* sampleRate / (2*xVals.length);
 
+            // Method to apply the calibrated values loaded from the calibration file
+            int j = 0;
+            for(int i=0; i<getResources().getInteger(R.integer.sample_rate)/25/2; i+=25){
+                while(j<tempBuffer.length && xVals[j]>=i && xVals[j]<(i+25)) {
+                    tempBuffer[j] *= frequencyAveraged[i];
+                    j++;
+                }
+            }
+
             ByteBuffer byteBufferY = ByteBuffer.allocate(tempBuffer.length*8);
             for(int k = 0; k < tempBuffer.length; k++)
                 byteBufferY.putDouble(tempBuffer[k]);
@@ -448,7 +529,7 @@ public class StartDSP extends ActionBarActivity {
 
 
             String date = DateFormat.format("LLL dd, yyyy HH:mm", new Date()).toString();
-            vals.put(TableEntry.COLUMN_NAME_DATE, date);  
+            vals.put(TableEntry.COLUMN_NAME_DATE, date);
             vals.put(TableEntry.COLUMN_NAME_COMMENT, " - " + title);
 
             // check if the gps location in enabled

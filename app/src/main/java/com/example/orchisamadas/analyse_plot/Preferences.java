@@ -20,7 +20,7 @@ import java.util.Map;
 public class Preferences extends ActionBarActivity {
 
     Spinner startTime, endTime, howOften, duration, noiseSmoothing, noiseThreshold;
-    Switch gps, storeOriginal;
+    Switch gps, storeOriginal, calibration;
     String[] startTimeValues = {"Now", "1 minute", "2 minutes", "5 minutes", "10 minutes", "30 minutes", "60 minutes"};
     String[] endTimeValues = {"1 minute", "2 minutes", "5 minutes", "10 minutes", "30 minutes", "60 minutes"};
     String[] howOftenValues = {"10 seconds", "60 seconds", "300 seconds", "600 seconds"};
@@ -43,6 +43,7 @@ public class Preferences extends ActionBarActivity {
     public static final String thresholdNoiseKey = "thresholdKey";
     public static final String gpsValueKey = "gpsKey";
     public static final String originalStoreKey = "originalKey";
+    public static final String calibratedValuesKey = "useCalibratedKey";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -56,6 +57,7 @@ public class Preferences extends ActionBarActivity {
         noiseThreshold = (Spinner) findViewById(R.id.parametric_spinner_threshold);
         gps = (Switch) findViewById(R.id.parametric_switch_gps);
         storeOriginal = (Switch) findViewById(R.id.parametric_switch_storeoriginal);
+        calibration = (Switch) findViewById(R.id.parametric_switch_calibrate);
         doneButton = (ImageButton) findViewById(R.id.parametric_button_storedata);
 
         // add the values to the hash of start times
@@ -105,6 +107,7 @@ public class Preferences extends ActionBarActivity {
                 String thresholdNoise = noiseThreshold.getSelectedItem().toString();
                 String gpsValue = gps.isChecked() ? "yes" : "no";
                 String originalStore = storeOriginal.isChecked() ? "yes" : "no";
+                String useCalibratedValues = calibration.isChecked() ? "yes" : "no";
 
                 SharedPreferences preferences = getSharedPreferences(PREFERENCES, MODE_PRIVATE);
                 SharedPreferences.Editor editor = preferences.edit();
@@ -116,6 +119,7 @@ public class Preferences extends ActionBarActivity {
                 editor.putString(thresholdNoiseKey, thresholdHash.get(thresholdNoise).toString());
                 editor.putString(gpsValueKey, gpsValue);
                 editor.putString(originalStoreKey, originalStore);
+                editor.putString(calibratedValuesKey, useCalibratedValues);
                 editor.commit();
                 Toast.makeText(Preferences.this, "Settings have been saved", Toast.LENGTH_LONG).show();
 

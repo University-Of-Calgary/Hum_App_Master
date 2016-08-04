@@ -7,7 +7,7 @@ import android.widget.TextView;
 
 public class RecorderSettings extends AppCompatActivity {
 
-    private TextView tvStartTime, tvEndTime, tvOftenTime, tvDuration, tvThreshold, tvGPS, tvOriginal;
+    private TextView tvStartTime, tvEndTime, tvOftenTime, tvDuration, tvThreshold, tvGPS, tvOriginal, tvCalibrated;
 
     private static final String PREFERENCES = "AudioRecordingPrefs";
     private static final String timeStartKey = "startKey";
@@ -17,6 +17,7 @@ public class RecorderSettings extends AppCompatActivity {
     private static final String thresholdNoiseKey = "thresholdKey";
     private static final String gpsValueKey = "gpsKey";
     private static final String originalStoreKey = "originalKey";
+    private static final String calibratedValuesKey = "useCalibratedKey";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -30,6 +31,7 @@ public class RecorderSettings extends AppCompatActivity {
         tvThreshold = (TextView) findViewById(R.id.recorder_tv_threshold);
         tvGPS = (TextView) findViewById(R.id.recorder_tv_gps);
         tvOriginal = (TextView) findViewById(R.id.recorder_tv_original);
+        tvCalibrated = (TextView) findViewById(R.id.recorder_tv_calibrated);
 
         SharedPreferences preferences = getSharedPreferences(PREFERENCES, MODE_PRIVATE);
         int startTime = Integer.parseInt(preferences.getString(timeStartKey, "0"));
@@ -39,6 +41,7 @@ public class RecorderSettings extends AppCompatActivity {
         int threshold = Integer.parseInt(preferences.getString(thresholdNoiseKey, "0"));
         String gpsValue = preferences.getString(gpsValueKey, "no");
         String originalValue = preferences.getString(originalStoreKey, "yes");
+        String calibratedValue = preferences.getString(calibratedValuesKey, "no");
 
         tvStartTime.setText("Start Time : " + startTime + " minutes");
         tvEndTime.setText("End Time : " + endTime + " minutes");
@@ -47,5 +50,6 @@ public class RecorderSettings extends AppCompatActivity {
         tvThreshold.setText("Threshold : " + threshold + " units");
         tvGPS.setText("GPS Turned On : " + gpsValue);
         tvOriginal.setText("Store Original Sound : " + originalValue);
+        tvCalibrated.setText("Calibration on : " + calibratedValue);
     }
 }
