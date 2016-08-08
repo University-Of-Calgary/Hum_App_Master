@@ -45,7 +45,7 @@ public class CalibrateMicrophone extends AppCompatActivity {
             AUDIO_ENCODING = AudioFormat.ENCODING_PCM_16BIT, RECORDING_DURATION = 5;
     final String EXTERNAL_AUDIO_FILENAME = "external_audio.wav", ANDROID_AUDIO_FILENAME = "android_audio.wav";
     AudioRecord recorder;
-    Button startCalibration, startRecording, androidRecording, calculateFrequencyGain;
+    Button startRecording, androidRecording, calculateFrequencyGain;
     ImageButton startPlayback;
     TextView timer;
     CounterClass counterClass = new CounterClass(RECORDING_DURATION * 1000, 1000);
@@ -62,21 +62,16 @@ public class CalibrateMicrophone extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_calibrate_microphone);
 
-        startCalibration = (Button) findViewById(R.id.button_calibrate_microphone);
         startRecording = (Button) findViewById(R.id.button_start_recording);
         startPlayback = (ImageButton) findViewById(R.id.calibrate_playback_sound);
         androidRecording = (Button) findViewById(R.id.button_microphone_recording);
         calculateFrequencyGain = (Button) findViewById(R.id.button_frequency_gain);
         timer = (TextView) findViewById(R.id.textView_timer);
 
-        startCalibration.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                // Please insert an external microphone to start recording
-                externalMicrophoneRecording();
-                androidMicrophoneRecording();
-            }
-        });
+        // disable the button with the internal microphone recording
+        androidRecording.setEnabled(false);
+        externalMicrophoneRecording();
+        androidMicrophoneRecording();
 
         calculateFrequencyGain.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -86,9 +81,10 @@ public class CalibrateMicrophone extends AppCompatActivity {
                 calculateFrequencyGain();
                 // Frequency Gain values needs to be saved to a file
                 saveGainValuesToFile();
+                Toast.makeText(CalibrateMicrophone.this, "Frequency Gain has been calculated and saved to a file",
+                        Toast.LENGTH_SHORT).show();
             }
         });
-
     }
 
     @Override
@@ -154,8 +150,11 @@ public class CalibrateMicrophone extends AppCompatActivity {
         startRecording.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                startRecording.setEnabled(false);
                 // new CaptureAudio().execute(EXTERNAL_MIC_RECORDING);
-                captureAudio = new CaptureAudio(); captureAudio.execute(EXTERNAL_MIC_RECORDING);
+                captureAudio = new CaptureAudio();
+                captureAudio.execute(EXTERNAL_MIC_RECORDING);
+                androidRecording.setEnabled(true);
             }
         });
     }
@@ -167,8 +166,12 @@ public class CalibrateMicrophone extends AppCompatActivity {
         androidRecording.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                androidRecording.setEnabled(false);
                 // new CaptureAudio().execute(ANDROID_MIC_RECORDING);
-                captureAudio = new CaptureAudio(); captureAudio.execute(ANDROID_MIC_RECORDING);
+                captureAudio = new CaptureAudio();
+                captureAudio.execute(ANDROID_MIC_RECORDING);
+                // Enable the calculate frequency gain button
+                calculateFrequencyGain.setVisibility(View.VISIBLE);
             }
         });
     }

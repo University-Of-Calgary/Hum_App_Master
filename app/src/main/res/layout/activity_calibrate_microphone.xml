@@ -18,13 +18,13 @@
         android:layout_marginTop="10dp"
         android:text="Calibrate Microphone"/>
 
-    <Button
+    <!--<Button
         android:id="@+id/button_calibrate_microphone"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center_horizontal"
         android:layout_marginTop="10dp"
-        android:text="Start Calibration"/>
+        android:text="Start Calibration"/>-->
 
     <LinearLayout
         android:layout_height="wrap_content"
@@ -38,16 +38,14 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="External Microphone Recording"
-        android:layout_weight="5"
-        android:visibility="invisible"/>
+        android:layout_weight="5"/>
 
     <Button
         android:id="@+id/button_microphone_recording"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Internal Microphone Recording"
-        android:layout_weight="5"
-        android:visibility="invisible"/>
+        android:layout_weight="5"/>
 
     </LinearLayout>
 
@@ -55,14 +53,15 @@
         android:id="@+id/textView_timer"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
         android:layout_marginTop="10dp"
-        android:textSize="15dp"/>
+        android:textSize="20sp"/>
 
     <ImageButton
         android:id="@+id/calibrate_playback_sound"
         android:layout_height="wrap_content"
         android:layout_width="wrap_content"
-        android:src="@drawable/play_circle_white"
+        android:src="@drawable/play_circle"
         android:layout_gravity="center_horizontal"
         android:layout_marginTop="10dp"
         android:visibility="invisible"
