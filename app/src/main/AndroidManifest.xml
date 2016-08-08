@@ -68,8 +68,6 @@
         </activity>
         <activity android:name=".RecordingAudioThreshold" >
         </activity>
-        <activity android:name=".RecorderActivitySettings" >
-        </activity>
         <activity android:name=".CalibrateMicrophone" >
         </activity>
         <activity android:name=".UploadDataToCloud" >

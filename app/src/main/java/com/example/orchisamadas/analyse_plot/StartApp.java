@@ -50,6 +50,7 @@ public class StartApp extends ActionBarActivity {
 
     public boolean onOptionsItemSelected(MenuItem item){
         //Handle presses on the action bar items
+        /**
         if (item.getItemId() == R.id.recording_Threshold){
             Intent thresholdIntent = new Intent(StartApp.this, RecordingAudioThreshold.class);
             startActivity(thresholdIntent);
@@ -58,9 +59,9 @@ public class StartApp extends ActionBarActivity {
         else if (item.getItemId() == R.id.recording_Value){
             Intent valueIntent = new Intent(StartApp.this, RecorderActivitySettings.class);
             startActivity(valueIntent);
-        }
+        }*/
 
-        else if (item.getItemId() == R.id.calibrate_microphone){
+        if (item.getItemId() == R.id.calibrate_microphone){
             Intent calibrateIntent = new Intent(StartApp.this, CalibrateMicrophone.class);
             startActivity(calibrateIntent);
         }
