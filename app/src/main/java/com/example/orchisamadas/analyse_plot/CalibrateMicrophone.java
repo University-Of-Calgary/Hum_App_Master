@@ -14,6 +14,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -44,7 +45,8 @@ public class CalibrateMicrophone extends AppCompatActivity {
             AUDIO_ENCODING = AudioFormat.ENCODING_PCM_16BIT, RECORDING_DURATION = 5;
     final String EXTERNAL_AUDIO_FILENAME = "external_audio.wav", ANDROID_AUDIO_FILENAME = "android_audio.wav";
     AudioRecord recorder;
-    Button startCalibration, startRecording, startPlayback, androidRecording, calculateFrequencyGain;
+    Button startCalibration, startRecording, androidRecording, calculateFrequencyGain;
+    ImageButton startPlayback;
     TextView timer;
     CounterClass counterClass = new CounterClass(RECORDING_DURATION * 1000, 1000);
     double[] externalMicValues, androidMicValues;
@@ -62,7 +64,7 @@ public class CalibrateMicrophone extends AppCompatActivity {
 
         startCalibration = (Button) findViewById(R.id.button_calibrate_microphone);
         startRecording = (Button) findViewById(R.id.button_start_recording);
-        startPlayback = (Button) findViewById(R.id.button_start_playback);
+        startPlayback = (ImageButton) findViewById(R.id.calibrate_playback_sound);
         androidRecording = (Button) findViewById(R.id.button_microphone_recording);
         calculateFrequencyGain = (Button) findViewById(R.id.button_frequency_gain);
         timer = (TextView) findViewById(R.id.textView_timer);

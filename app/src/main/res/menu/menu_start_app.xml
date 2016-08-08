@@ -3,12 +3,6 @@
     xmlns:tools="http://schemas.android.com/tools"
     tools:context="com.example.orchisamadas.analyse_plot.StartApp">
 
-    <item android:id="@+id/recording_Threshold" android:title="Recording Threshold"
-        android:orderInCategory="100" app:showAsAction="never"/>
-
-    <item android:id="@+id/recording_Value" android:title="Microphone Calibration"
-        android:orderInCategory="200" app:showAsAction="never"/>
-
     <item android:id="@+id/calibrate_microphone" android:title="Calibrate Microphone"
         android:orderInCategory="300" app:showAsAction="never"/>
 </menu>
