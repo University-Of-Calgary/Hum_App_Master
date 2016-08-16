@@ -317,7 +317,7 @@ public class CalibrateMicrophone extends AppCompatActivity {
                 @Override
                 public void onClick(View v) {
                     if(fileName.equals(EXTERNAL_MIC_RECORDING))
-                       playbackRecording(EXTERNAL_AUDIO_FILENAME);
+                        playbackRecording(EXTERNAL_AUDIO_FILENAME);
                     else if(fileName.equals(ANDROID_MIC_RECORDING))
                         playbackRecording(ANDROID_AUDIO_FILENAME);
                 }
@@ -380,7 +380,7 @@ public class CalibrateMicrophone extends AppCompatActivity {
     // Method for saving the recorded file into the phone's memory
     public void saveRecording(short[] sampleBuffer, String filename){
         /**File file = new File(Environment.getExternalStorageDirectory(),
-                new SimpleDateFormat("yyyyMMddhhmmss'.wav'").format(new Date()));*/
+         new SimpleDateFormat("yyyyMMddhhmmss'.wav'").format(new Date()));*/
         File file = new File(Environment.getExternalStorageDirectory(), filename);
         if (file.exists()) file.delete();
         try {
@@ -389,7 +389,6 @@ public class CalibrateMicrophone extends AppCompatActivity {
                     new DataOutputStream(new BufferedOutputStream(new FileOutputStream(file)));
             for(int n=0; n<sampleBuffer.length; n++) dataOutputStream.writeShort(sampleBuffer[n]);
         } catch (IOException e) {
-            System.out.println("Exception while saving record of type : " + e.toString());
         }
     }
 
