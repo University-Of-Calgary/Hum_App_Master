@@ -1,0 +1,8 @@
+title: Hum app master
+description: This is the modified version of the Hum Application. It accommodates any changes made to the original Hum Application developed. 
+google_analytics: 
+show_downloads: true
+theme: jekyll-theme-merlot
+
+gems:
+  - jekyll-mentions
